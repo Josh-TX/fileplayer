@@ -1,0 +1,6 @@
+Server/bin
+Server/obj
+Server/data
+Server/.vs
+UI/.vscode
+UI/node_modules
