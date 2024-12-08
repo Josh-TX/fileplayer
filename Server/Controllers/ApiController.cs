@@ -26,14 +26,17 @@ namespace FilePlayer.Controllers
             _settingsService = settingsService;
         }
 
-        private readonly string _dataFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
-        private HashAlgorithm _murmur128 = MurmurHash.Create128(managed: false);
+        private readonly string _dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
         private IDictionary<(Guid, long), (DateOnly, double)> _progressData = new SortedList<(Guid, long), (DateOnly, double)>();
 
         [HttpGet]
         [Route("dir-contents")]
         public ActionResult<DirContentsResponse> GetDirContents([FromQuery] string path = "")
         {
+            if (path == "" && !Directory.Exists(_dataFolderPath))
+            {
+                Directory.CreateDirectory(_dataFolderPath);
+            } 
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {

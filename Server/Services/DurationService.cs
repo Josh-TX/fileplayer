@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 public class DurationService
 {
     private ConcurrentDictionary<Guid, int> _knownDurations;
-    private string _metadataPath = "metadata/duration.txt";
+    private string _metadataPath = Path.Combine(BasePathHelper.BasePath, "metadata", "duration.txt");
     private Timer? _debounceTimer;
     public DurationService()
     {

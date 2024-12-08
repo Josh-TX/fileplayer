@@ -6,7 +6,7 @@ public class ProgressService
     private Dictionary<Guid, (float, DateOnly)> _progress;
     private Timer? _shortDebounceTimer;
     private Timer? _longTimer;
-    private string _metadataPath = "metadata/progress.txt";
+    private string _metadataPath = Path.Combine(BasePathHelper.BasePath, "metadata", "progress.txt");
     private const int _shortSeconds = 4;
     private const int _longSeconds = 10;
 

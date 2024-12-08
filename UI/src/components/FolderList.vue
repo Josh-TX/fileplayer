@@ -31,7 +31,6 @@ async function load() {
     if (!pathService.isFile().value) {
         var result = await apiAccess.getDirContents(pathService.getPathString());
         var settings = await settingsPromise;
-        console.log('settings', settings)
         sortBy.value = settings.sortBy;
         sortDesc.value = settings.sortDesc;
         folderInfos.value = result.folderInfos

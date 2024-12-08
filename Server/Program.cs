@@ -32,7 +32,7 @@ if (Directory.Exists(dataFolderPath))
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(dataFolderPath),
-        RequestPath = "/data"
+        RequestPath = Path.Combine(BasePathHelper.BasePath, "data")
     });
 }
 app.UseCors();

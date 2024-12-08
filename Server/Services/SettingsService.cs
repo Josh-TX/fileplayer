@@ -12,7 +12,7 @@ public class Settings
 public class SettingsService
 {
     private Settings _settings;
-    private string _metadataPath = "metadata/settings.json";
+    private string _metadataPath = Path.Combine(BasePathHelper.BasePath, "metadata", "settings.txt");
     public SettingsService()
     {
         _settings = Load();
