@@ -1,5 +1,6 @@
 import { ref, type Ref, shallowRef } from "vue";
 import { apiAccess } from '@/services/ApiAccess';
+import { settingsService } from '@/services/SettingsService';
 import type { MediaInfo } from "@/models/models";
 
 
@@ -7,12 +8,16 @@ class MediaService{
     private _path: string | null = null;
     private _lastProgress: number | null = null;
     private _lastUpdateTime: number | null = null;
-
+    private _lastPlaybackRate: number = 1;
     constructor(){
         setInterval(() => {
             if (this._path){
                 var el = <HTMLVideoElement>document.getElementById('media');
                 if (el){
+                    if (el.playbackRate != this._lastPlaybackRate){
+                        settingsService.updatePlaybackSpeed(el.playbackRate);
+                        this._lastPlaybackRate = el.playbackRate
+                    }
                     const currentProgress = (el.currentTime / el.duration);
                     if (this._lastProgress == null){
                         if (currentProgress > 0){
@@ -66,7 +71,10 @@ class MediaService{
         if (!el){
             throw "couldn't find media element";
         }
-        el.playbackRate = 2;
+        settingsService.getSettingsAsync().then(z => {
+            el.playbackRate = z.playbackSpeed
+            this._lastPlaybackRate = z.playbackSpeed;
+        });
         el.addEventListener('play', () => {
             if (this.isSafariMobile()){
                 el.currentTime = 10;

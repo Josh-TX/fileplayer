@@ -10,6 +10,7 @@ namespace FilePlayer.Controllers
     {
         private DurationService _durationService;
         private ProgressService _progressService;
+        private SettingsService _settingsService;
         private string[] _mediaExtensions = new[]{
             "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx",
             "mp3", "wav", "aac", "flac", "ogg", "alac", "m4a", "opus", "mid", "midi"
@@ -17,10 +18,12 @@ namespace FilePlayer.Controllers
 
         public ApiController(
             DurationService durationService,
-            ProgressService progressService
+            ProgressService progressService,
+            SettingsService settingsService
             ) {
             _durationService = durationService;
             _progressService = progressService;
+            _settingsService = settingsService;
         }
 
         private readonly string _dataFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
@@ -174,6 +177,21 @@ namespace FilePlayer.Controllers
             var size = fileInfo.Length;
             var fileId = FileIdHelper.GetId(fileName, size);
             _progressService.SetProgress(fileId, Convert.ToSingle(progress));
+            return Ok();
+        }
+
+        [HttpGet]
+        [Route("settings")]
+        public ActionResult GetSettings()
+        {
+            return Ok(_settingsService.GetSettings());
+        }
+
+        [HttpPost]
+        [Route("update-settings")]
+        public ActionResult UpdateSettings([FromBody] Settings settings)
+        {
+            _settingsService.UpdateSettings(settings);
             return Ok();
         }
 

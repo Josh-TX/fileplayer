@@ -6,6 +6,7 @@ import FolderItem from './FolderItem.vue';
 import { pathService } from '@/services/PathService';
 import type { FolderInfo, MediaInfo } from '@/models/models';
 import MediaItem from './MediaItem.vue';
+import { settingsService } from '@/services/SettingsService';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     pathService.appendFile(mediaInfo);
@@ -21,7 +22,7 @@ var mediaInfos = shallowRef<MediaInfo[]>([]);
 var showDropdown = ref<boolean>(false);
 var sortDesc = ref<boolean>(true);
 var sortBy = ref<string>("name");
-
+var settingsPromise = settingsService.getSettingsAsync();
 watch(pathService.getWatcherPathRef(), (newVal, oldVal) => {
     load();
 });
@@ -29,8 +30,13 @@ watch(pathService.getWatcherPathRef(), (newVal, oldVal) => {
 async function load() {
     if (!pathService.isFile().value) {
         var result = await apiAccess.getDirContents(pathService.getPathString());
+        var settings = await settingsPromise;
+        console.log('settings', settings)
+        sortBy.value = settings.sortBy;
+        sortDesc.value = settings.sortDesc;
         folderInfos.value = result.folderInfos
         mediaInfos.value = result.mediaInfos
+        sort();
         if (result.mediaInfos.some(z => z.duration == null)) {
             var durationsResponse = await apiAccess.getDurations(pathService.getPathString());
             if (mediaInfos.value != result.mediaInfos){
@@ -55,11 +61,14 @@ function changeSortBy(newSortBy: string){
     setTimeout(() => {
         showDropdown.value = false;
     }, 150)
+    settingsService.updateSort(sortBy.value, sortDesc.value);
     sort();
 }
 function toggleSortDesc(){
     sortDesc.value = !sortDesc.value
-    sort();
+    settingsService.updateSort(sortBy.value, sortDesc.value);
+    folderInfos.value.reverse();
+    mediaInfos.value.reverse();
 }
 
 function stopPropogate(e: Event){
@@ -80,34 +89,38 @@ onUnmounted(() => {
 function sort(){
     var modifier = sortDesc.value ? 1 : -1;
     if (sortBy.value == "modified"){
-        folderInfos.value.sort((z1, z2) => (new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime()) * modifier)
-        mediaInfos.value.sort((z1, z2) => (new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime()) * modifier)
+        folderInfos.value.sort((z1, z2) => new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime())
+        mediaInfos.value.sort((z1, z2) => new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime())
     }
     else if (sortBy.value == "duration"){
-        mediaInfos.value.sort((z1, z2) => ((z2.duration || 0) - (z1.duration || 0)) * modifier)
+        mediaInfos.value.sort((z1, z2) => (z2.duration || 0) - (z1.duration || 0))
     }    
     else if (sortBy.value == "size"){
-        folderInfos.value.sort((z1, z2) => (z2.mediaDiskSize - z1.mediaDiskSize) * modifier)
-        mediaInfos.value.sort((z1, z2) => (z2.fileSize - z1.fileSize) * modifier)
+        folderInfos.value.sort((z1, z2) => z2.mediaDiskSize - z1.mediaDiskSize)
+        mediaInfos.value.sort((z1, z2) => z2.fileSize - z1.fileSize)
         
     }
     else if (sortBy.value == "played"){
         mediaInfos.value.sort((z1, z2) => {
             if (z1.progressDate == null && z2.progressDate != null){
-                return modifier;
+                return 1;
             } 
             if (z1.progressDate != null && z2.progressDate == null){
-                return -modifier;
+                return -1;
             }
             if (z1.progressDate != null && z2.progressDate != null){
-                return (new Date(z2.progressDate).getTime() - new Date(z1.progressDate).getTime()) * modifier
+                return new Date(z2.progressDate).getTime() - new Date(z1.progressDate).getTime()
             }
             return 0;
         })
     } 
     else {
-        folderInfos.value.sort((z1, z2) => (z1.folderName.localeCompare(z2.folderName)) * modifier)
-        mediaInfos.value.sort((z1, z2) => (z1.fileName.localeCompare(z2.fileName)) * modifier)
+        folderInfos.value.sort((z1, z2) => z1.folderName.localeCompare(z2.folderName))
+        mediaInfos.value.sort((z1, z2) => z1.fileName.localeCompare(z2.fileName))
+    }
+    if (!sortDesc.value){
+        folderInfos.value.reverse();
+        mediaInfos.value.reverse();
     }
     folderInfos.value = [...folderInfos.value]
     mediaInfos.value = [...mediaInfos.value]

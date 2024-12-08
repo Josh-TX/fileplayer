@@ -28,3 +28,9 @@ export type MediaDuration = {
     fileName: string;
     duration: number;
 }
+
+export type Settings = {
+    playbackSpeed: number;
+    sortBy: string;
+    sortDesc: boolean;
+}

@@ -17,6 +17,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<DurationService>();
 builder.Services.AddSingleton<ProgressService>();
+builder.Services.AddSingleton<SettingsService>();
 
 var app = builder.Build();
 

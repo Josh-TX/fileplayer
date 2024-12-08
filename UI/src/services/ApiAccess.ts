@@ -1,4 +1,4 @@
-import type { DirContentsResponse, GetDurationsResponse, MediaInfo } from "@/models/models";
+import type { DirContentsResponse, GetDurationsResponse, MediaInfo, Settings } from "@/models/models";
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 class ApiAccess {
@@ -20,6 +20,19 @@ class ApiAccess {
 
     async updateProgress(progress: number, path: string): Promise<any> {
         await fetch(`${baseUrl}/api/update-progress?progress=${progress}&path=${encodeURIComponent(path)}`, {method: "POST"});
+        return;
+    }
+
+    async getSettings(): Promise<Settings> {
+        return await fetch(`${baseUrl}/api/settings`).then(res => res.json());
+    }
+
+    async updateSettings(settings: Settings): Promise<any> {
+        await fetch(`${baseUrl}/api/update-settings`, {
+            method: "POST", 
+            headers: {'Accept': 'application/json','Content-Type': 'application/json'},
+            body: JSON.stringify(settings)
+        });
         return;
     }
 }
