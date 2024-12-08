@@ -1,33 +1,7 @@
-# file-player
+# local debugging
 
-This template should help get you started developing with Vue 3 in Vite.
+When you use `npm run dev`, it creates a local server that auto rebuilds and refreshes on code change. This also uses the .env.development file, causing the base URL for API calls to point to the dotnet server's localhost port.
 
-## Recommended IDE Setup
+When you use `npm run build`, it outputs to `../Server/wwwroot`, which is where the dotnet server serves files from.
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
+The former has the advantage of auto-rebuild & refresh, but the latter is more true to how it actually works once deployed. 
