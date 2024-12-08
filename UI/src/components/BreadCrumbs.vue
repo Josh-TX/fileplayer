@@ -7,11 +7,11 @@ import { watch, shallowRef, type ShallowRef, ref } from 'vue';
 var crumbs = ref<string[]>([]);
 watch(pathService.getWatcherPathRef(), update);
 update();
-function update(){
-    crumbs.value = ["/", ...pathService.getPathString().split("/").filter(z => !!z)]
+function update() {
+    crumbs.value = ["root", ...pathService.getPathString().split("/").filter(z => !!z)]
 }
 
-function navigate(index: number){
+function navigate(index: number) {
     pathService.navigate(index);
 }
 
@@ -23,11 +23,11 @@ function navigate(index: number){
             <li v-for="(item, index) in crumbs" :key="index" class="breadcrumb-item">
                 <!-- If it's not the last item, make it a clickable link -->
                 <template v-if="index < crumbs.length - 1">
-                    <a href="#" @click.prevent="navigate(index)">{{ item }}</a>
+                    <a class="link" href="#" @click.prevent="navigate(index)">{{ item }}</a>
                 </template>
                 <!-- If it's the last item, just display text -->
                 <template v-else>
-                    {{ item }}
+                    &nbsp;{{ item }}
                 </template>
             </li>
         </ol>
@@ -35,27 +35,42 @@ function navigate(index: number){
 </template>
 
 <style scoped>
+
+.link {
+    padding: 0 8px;
+    color: rgb(115, 220, 255);
+    /* This makes the link inherit its color from the parent element */
+}
+.link:hover{
+    text-decoration: underline;
+}
+
 .breadcrumb {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  display: flex;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+
+    font-size: 24px;
+    font-weight: semibold;
 }
 
 .breadcrumb-item {
-  margin-right: 5px;
+    margin-right: 5px;
 }
 
 .breadcrumb-item a {
-  text-decoration: none;
+    text-decoration: none;
 }
 
 .breadcrumb-item::after {
-  content: '>';
-  margin-left: 5px;
+    line-height: 16px;;
+    content: '\276F';
+    content: '>';
+    margin-left: 5px;
 }
 
 .breadcrumb-item:last-child::after {
-  content: '';
+    content: '';
 }
 </style>

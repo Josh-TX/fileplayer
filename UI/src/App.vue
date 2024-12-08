@@ -8,9 +8,11 @@ import MediaPlayer from './components/MediaPlayer.vue';
 </script>
 
 <template>
-    <BreadCrumbs></BreadCrumbs>
-    <FolderList v-if="!pathService.isFile().value"></FolderList>
-    <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
+    <div style="display: flex; flex-direction: column; height: 100%;">
+        <BreadCrumbs></BreadCrumbs>
+        <FolderList v-if="!pathService.isFile().value"></FolderList>
+        <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
+    </div>
 </template>
 
 <style scoped>
@@ -22,6 +24,7 @@ header {
     display: block;
     margin: 0 auto 2rem;
 }
+
 
 @media (min-width: 1024px) {
     header {
