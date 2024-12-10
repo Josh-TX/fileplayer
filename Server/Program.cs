@@ -35,7 +35,11 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Serve files from the "data" folder
+#if DEBUG
 var dataFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
+#else
+var dataFolderPath = "/data";
+#endif
 if (Directory.Exists(dataFolderPath))
 {
     app.UseStaticFiles(new StaticFileOptions
