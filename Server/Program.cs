@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,14 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader()  // Allow any headers
               .AllowAnyMethod(); // Allow any HTTP method (GET, POST, etc.)
     });
+});
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 1024L * 1024 * 1024 * 2; // 2 GB
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 1024L * 1024 * 1024 * 2; // 2 GB
 });
 
 builder.Services.AddSingleton<DurationService>();
@@ -32,7 +41,7 @@ if (Directory.Exists(dataFolderPath))
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(dataFolderPath),
-        RequestPath = Path.Combine(BasePathHelper.BasePath, "data")
+        RequestPath = "/data"
     });
 }
 app.UseCors();

@@ -33,7 +33,17 @@ class ApiAccess {
             headers: {'Accept': 'application/json','Content-Type': 'application/json'},
             body: JSON.stringify(settings)
         });
-        return;
+    }
+
+    async uploadFiles(files: File[], path: string): Promise<any> {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+        await fetch(`${baseUrl}/api/upload-files?path=${encodeURIComponent(path)}`, {
+            method: "POST", 
+            body: formData
+        });
     }
 }
 

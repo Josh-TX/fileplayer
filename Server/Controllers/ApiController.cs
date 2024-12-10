@@ -166,6 +166,10 @@ namespace FilePlayer.Controllers
         [Route("update-progress")]
         public ActionResult UpdateProgress([FromQuery] double progress, [FromQuery] string path = "")
         {
+            if (double.IsNaN(progress))
+            {
+                return BadRequest("progress is NaN");
+            }
             if (!_mediaExtensions.Any(ext => path.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
             {
                 return BadRequest(new { Message = "not a media file" });
@@ -197,6 +201,31 @@ namespace FilePlayer.Controllers
             _settingsService.UpdateSettings(settings);
             return Ok();
         }
+
+        [HttpPost]
+        [Route("upload-files")]
+        public async Task<IActionResult> UploadFiles([FromForm] List<IFormFile> files, [FromQuery] string path = "")
+        {
+            string fullDirectory = Path.Combine(_dataFolderPath, path);
+            if (!Directory.Exists(fullDirectory))
+            {
+                return NotFound(new { Message = "Directory not found." });
+            }
+            foreach (var file in files)
+            {
+                if (file.Length > 0)
+                {
+                    var filePath = Path.Combine(fullDirectory, file.FileName);
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+                }
+            }
+            return Ok();
+        }
+
+
 
         private (long MediaDiskSize, int MediaFileCount) GetFolderSizeAndFileCount(string folderPath)
         {

@@ -7,6 +7,7 @@ import { pathService } from '@/services/PathService';
 import type { FolderInfo, MediaInfo } from '@/models/models';
 import MediaItem from './MediaItem.vue';
 import { settingsService } from '@/services/SettingsService';
+import UploadFileModal from './UploadFileModal.vue';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     pathService.appendFile(mediaInfo);
@@ -19,10 +20,11 @@ function handleFolderClick(folderInfo: FolderInfo) {
 
 var folderInfos = shallowRef<FolderInfo[]>([]);
 var mediaInfos = shallowRef<MediaInfo[]>([]);
+
 var showDropdown = ref<boolean>(false);
 var sortDesc = ref<boolean>(true);
 var sortBy = ref<string>("name");
-var settingsPromise = settingsService.getSettingsAsync();
+
 watch(pathService.getWatcherPathRef(), (newVal, oldVal) => {
     load();
 });
@@ -30,7 +32,7 @@ watch(pathService.getWatcherPathRef(), (newVal, oldVal) => {
 async function load() {
     if (!pathService.isFile().value) {
         var result = await apiAccess.getDirContents(pathService.getPathString());
-        var settings = await settingsPromise;
+        var settings = await settingsService.getSettingsAsync();
         sortBy.value = settings.sortBy;
         sortDesc.value = settings.sortDesc;
         folderInfos.value = result.folderInfos
@@ -86,7 +88,6 @@ onUnmounted(() => {
 })
 
 function sort(){
-    var modifier = sortDesc.value ? 1 : -1;
     if (sortBy.value == "modified"){
         folderInfos.value.sort((z1, z2) => new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime())
         mediaInfos.value.sort((z1, z2) => new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime())
@@ -125,6 +126,12 @@ function sort(){
     mediaInfos.value = [...mediaInfos.value]
 }
 
+function refresh(){
+    load();
+}
+
+
+
 </script>
 
 <template>
@@ -147,6 +154,9 @@ function sort(){
             <div v-for="mediaInfo of mediaInfos">
                 <MediaItem :mediaInfo="mediaInfo" @click="handleMediaClick(mediaInfo)"></MediaItem>
             </div>
+        </div>
+        <div>
+            <UploadFileModal @uploaded="refresh"></UploadFileModal>
         </div>
     </div>
 </template>
@@ -231,7 +241,7 @@ function sort(){
     gap: 10px;
     max-width: 800px;
     margin: 0 auto;
-    padding: 0 10px 10px 10px
+    padding: 0 10px 30px 10px
 }
 
 @media (min-width: 1200px) {
