@@ -3,5 +3,6 @@ Server/obj
 Server/data
 Server/metadata
 Server/.vs
+Server/wwwroot/*
 UI/.vscode
 UI/node_modules
