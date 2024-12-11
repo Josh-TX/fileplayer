@@ -12,11 +12,12 @@ function filesAdded(addedFiles: File[]) {
     files.value = addedFiles;
 }
 
-function upload() {
-    apiAccess.uploadFiles(files.value, pathService.getPathString()).then(() => {
-        emits("uploaded");
-        close();
-    });
+async function upload() {
+    for (var file of files.value){ 
+        await apiAccess.uploadFiles(file, pathService.getPathString());
+    }
+    emits("uploaded");
+    close();
 }
 
 function close(){

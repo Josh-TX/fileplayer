@@ -5,7 +5,7 @@ import { watch, shallowRef, type ShallowRef, ref } from 'vue';
 
 
 var crumbs = ref<string[]>([]);
-watch(pathService.getWatcherPathRef(), update);
+watch(pathService.getPath(), update);
 update();
 function update() {
     crumbs.value = ["root", ...pathService.getPathString().split("/").filter(z => !!z)]

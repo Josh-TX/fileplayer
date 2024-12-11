@@ -35,15 +35,25 @@ class ApiAccess {
         });
     }
 
-    async uploadFiles(files: File[], path: string): Promise<any> {
+    async uploadFiles(file: File, path: string): Promise<any> {
         const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-            formData.append('files', files[i]);
-        }
+        formData.append('file', file);
         await fetch(`${baseUrl}/api/upload-files?path=${encodeURIComponent(path)}`, {
             method: "POST", 
             body: formData
         });
+    }
+
+    async createDir(path: string): Promise<any> {
+        return await fetch(`${baseUrl}/api/create-dir?path=${encodeURIComponent(path)}`, {method: "POST"});
+    }
+
+    async delete(path: string): Promise<any> {
+        return await fetch(`${baseUrl}/api/delete?path=${encodeURIComponent(path)}`, {method: "DELETE"});
+    }
+
+    async rename(path: string, newName: string): Promise<any> {
+        return await fetch(`${baseUrl}/api/rename?path=${encodeURIComponent(path)}&newName=${encodeURIComponent(newName)}`, {method: "POST"});
     }
 }
 

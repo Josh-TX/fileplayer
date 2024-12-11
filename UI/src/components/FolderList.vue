@@ -2,12 +2,11 @@
 
 import { watch, shallowRef, type ShallowRef, ref, onUnmounted, onMounted } from 'vue';
 import { apiAccess } from '@/services/ApiAccess';
-import FolderItem from './FolderItem.vue';
 import { pathService } from '@/services/PathService';
 import type { FolderInfo, MediaInfo } from '@/models/models';
-import MediaItem from './MediaItem.vue';
 import { settingsService } from '@/services/SettingsService';
 import UploadFileModal from './UploadFileModal.vue';
+import Tile from './Tile.vue';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     pathService.appendFile(mediaInfo);
@@ -25,7 +24,7 @@ var showDropdown = ref<boolean>(false);
 var sortDesc = ref<boolean>(true);
 var sortBy = ref<string>("name");
 
-watch(pathService.getWatcherPathRef(), (newVal, oldVal) => {
+watch(pathService.getPath(), (newVal, oldVal) => {
     load();
 });
 
@@ -72,14 +71,20 @@ function toggleSortDesc(){
     mediaInfos.value.reverse();
 }
 
+async function newFolder(){
+    var newName = prompt("enter new folder's name");
+    if (newName){
+        await apiAccess.createDir([...pathService.getPath().value, newName].join("/"));
+        refresh();
+    }
+}
+
 function stopPropogate(e: Event){
     e.stopPropagation();
 }
-
 function bodyClickHandler(){
     showDropdown.value = false;
 }
-
 onMounted(() => {
     document.body.addEventListener("click", bodyClickHandler);
 })
@@ -137,25 +142,28 @@ function refresh(){
 <template>
     <div style="position: relative;">
         <div class="sort-btn-container" @click="stopPropogate">
-            <button class="btn" @click="showDropdown = !showDropdown">sort by</button>
+            <button class="btn" @click="showDropdown = !showDropdown">
+                sort by
+                <div class="context-menu checkable" :class="{active: showDropdown}">
+                    <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
+                    <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
+                    <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
+                    <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
+                    <div class="menu-item" @click="changeSortBy('played')"><span v-if="sortBy=='played'">✓</span>date played</div>
+                </div>
+            </button>
             <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
-            <div class="context-menu" :class="{active: showDropdown}">
-                <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
-                <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
-                <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
-                <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
-                <div class="menu-item" @click="changeSortBy('played')"><span v-if="sortBy=='played'">✓</span>date played</div>
-            </div>
         </div>
         <div class="dir-content-grid">
             <div v-for="folderInfo of folderInfos">
-                <FolderItem :folderInfo="folderInfo" @click="handleFolderClick(folderInfo)"></FolderItem>
+                <Tile :folderInfo="folderInfo" @click="handleFolderClick(folderInfo)" @changed="refresh"></Tile>
             </div>
             <div v-for="mediaInfo of mediaInfos">
-                <MediaItem :mediaInfo="mediaInfo" @click="handleMediaClick(mediaInfo)"></MediaItem>
+                <Tile :mediaInfo="mediaInfo" @click="handleMediaClick(mediaInfo)" @changed="refresh"></Tile>
             </div>
         </div>
-        <div>
+        <div style="display: flex; justify-content: end; gap: 12px;">
+            <button @click="newFolder">New Folder</button>
             <UploadFileModal @uploaded="refresh"></UploadFileModal>
         </div>
     </div>
@@ -166,47 +174,6 @@ function refresh(){
     position: absolute;
     bottom: 100%;
     right: 8px;
-}
-.context-menu {
-    
-    padding: 4px 0;
-    display: none;
-    border-radius: 4px;
-    z-index: 5;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    --bg-main: #333;
-    --border-color-contrast: #666;
-    background: var(--bg-main);
-    border: 1px solid var(--border-color-contrast);
-    box-shadow: 0 2px 4px -1px #0003,
-    0 4px 5px #00000024,
-    0 1px 10px #0000001f;
-}
-.context-menu.active {
-    display: flex;
-}
-
-.menu-item {
-    color: var(--text-main);
-    padding: 6px 12px 6px 24px;
-    font-size: 14px;
-    cursor: pointer;
-    position: relative;
-    white-space: nowrap;
-}
-.menu-item>span{
-    position: absolute;
-    top: 4px;
-    left: 8px;
-}
-.menu-item:hover {
-    --text-contrast: #FFF;
-    --bg-hover: #444;
-    color: var(--text-contrast);
-    background: var(--bg-hover);
 }
 
 .btn{

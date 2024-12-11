@@ -9,7 +9,7 @@ const baseUrl = import.meta.env.VITE_BASE_URL;
 var src = ref<string | null>(null)
 var mediaInfo = shallowRef<MediaInfo | null>(pathService.getMediaInfo());
 var mounted = false;
-watch(pathService.getWatcherPathRef(),(newVal, oldVal) => {
+watch(pathService.getPath(),(newVal, oldVal) => {
     updateSrc();
 });
 function updateSrc(){

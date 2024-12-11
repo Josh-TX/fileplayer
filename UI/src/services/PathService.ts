@@ -65,7 +65,7 @@ class PathService{
         return this._path.value.join("/");
     }
 
-    getWatcherPathRef(){
+    getPath(){
         return this._path;
     }
 

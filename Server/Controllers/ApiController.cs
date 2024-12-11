@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Murmur;
-using System.Security.Cryptography;
 
 namespace FilePlayer.Controllers
 {
@@ -204,28 +202,107 @@ namespace FilePlayer.Controllers
 
         [HttpPost]
         [Route("upload-files")]
-        public async Task<IActionResult> UploadFiles([FromForm] List<IFormFile> files, [FromQuery] string path = "")
+        public async Task<IActionResult> UploadFiles([FromForm] IFormFile file, [FromQuery] string path = "")
         {
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {
                 return NotFound(new { Message = "Directory not found." });
             }
-            foreach (var file in files)
+            if (file.Length > 0)
             {
-                if (file.Length > 0)
+                var filePath = Path.Combine(fullDirectory, file.FileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
                 {
-                    var filePath = Path.Combine(fullDirectory, file.FileName);
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
+                    await file.CopyToAsync(stream);
                 }
             }
             return Ok();
         }
 
+        [HttpDelete]
+        [Route("delete")]
+        public IActionResult Delete([FromQuery] string path = "")
+        {
+            string fullPath = Path.Combine(_dataFolderPath, path);
+            if (path == "")
+            {
+                return BadRequest("can't delete root directory");
+            }
+            else if (System.IO.File.Exists(fullPath))
+            {
+                System.IO.File.Delete(fullPath);
+            }
+            else if (Directory.Exists(fullPath))
+            {
+                System.IO.Directory.Delete(fullPath, recursive: true);
+            }
+            else
+            {
+                return NotFound("File or Directory not found.");
+            }
+            return Ok();
+        }
 
+        [HttpPost]
+        [Route("rename")]
+        public IActionResult Rename([FromQuery] string newName, [FromQuery] string path = "")
+        {
+            if (newName.Contains("/"))
+            {
+                return BadRequest("invalid name");
+            }
+            string fullPath = Path.Combine(_dataFolderPath, path);
+            if (path == "")
+            {
+                return BadRequest("can't rename root directory");
+            }
+            else if (System.IO.File.Exists(fullPath))
+            {
+                if (!_mediaExtensions.Any(ext => newName.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return BadRequest("media files must have a valid file extension");
+                }
+                var parentPath = Path.GetDirectoryName(fullPath)!;
+                var newFullPath = Path.Combine(parentPath, newName);
+                if (System.IO.File.Exists(newFullPath) || Directory.Exists(newFullPath))
+                {
+                    return BadRequest("new name already taken");
+                }
+                System.IO.File.Move(fullPath, newFullPath);
+            }
+            else if (Directory.Exists(fullPath))
+            {
+                var parentPath = Path.GetDirectoryName(fullPath)!;
+                var newFullPath = Path.Combine(parentPath, newName);
+                if (System.IO.File.Exists(newFullPath) || Directory.Exists(newFullPath))
+                {
+                    return BadRequest("new name already taken");
+                }
+                System.IO.Directory.Move(fullPath, newFullPath);
+            }
+            else
+            {
+                return NotFound(new { Message = "File or Directory not found." });
+            }
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("create-dir")]
+        public IActionResult CreateDir([FromQuery] string path = "")
+        {
+            if (path == "")
+            {
+                return BadRequest("can't create root directory");
+            }
+            string fullPath = Path.Combine(_dataFolderPath, path);
+            if (Directory.Exists(fullPath) || System.IO.File.Exists(fullPath)) {
+                return BadRequest("name already taken");
+            }
+            Directory.CreateDirectory(fullPath);
+            return Ok();
+        }
 
         private (long MediaDiskSize, int MediaFileCount) GetFolderSizeAndFileCount(string folderPath)
         {

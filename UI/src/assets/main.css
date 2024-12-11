@@ -28,3 +28,51 @@ body {
 #app{
     height: 100%;
 }
+
+
+
+.context-menu {
+    padding: 4px 0;
+    display: none;
+    border-radius: 4px;
+    z-index: 5;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    --bg-main: #333;
+    --border-color-contrast: #666;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color-contrast);
+    box-shadow: 0 2px 4px -1px #0003,
+    0 4px 5px #00000024,
+    0 1px 10px #0000001f;
+    text-align: left;
+}
+.context-menu.active {
+    display: flex;
+}
+
+.menu-item {
+    color: var(--text-main);
+    padding: 6px 12px 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+}
+.checkable > .menu-item {
+    padding: 6px 12px 6px 24px;
+}
+
+.menu-item>span{
+    position: absolute;
+    top: 4px;
+    left: 8px;
+}
+.menu-item:hover {
+    --text-contrast: #FFF;
+    --bg-hover: #444;
+    color: var(--text-contrast);
+    background: var(--bg-hover);
+}
