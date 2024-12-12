@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FolderInfo, MediaInfo } from '@/models/models';
 import { apiAccess } from '@/services/ApiAccess';
+import { fileTypeHelper } from '@/services/FileTypeHelper';
 import { pathService } from '@/services/PathService';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 var emits = defineEmits(['changed'])
@@ -21,6 +22,23 @@ const computedDate = computed(() => {
     var date = props.folderInfo ? new Date(props.folderInfo.modifyDate) : new Date(props.mediaInfo!.modifyDate);
     return new Intl.DateTimeFormat('en-US').format(date);
 });
+
+function getClass(){
+    if (props.folderInfo){
+        return "folder"
+    }
+    if (fileTypeHelper.isVideo(props.mediaInfo!.fileName)){
+        return "video";
+    }
+    if (fileTypeHelper.isAudio(props.mediaInfo!.fileName)){
+        return "audio";
+    }
+    return "nonmedia"
+};
+
+function isMedia(){
+    return props.mediaInfo && fileTypeHelper.isMedia(props.mediaInfo.fileName);
+};
 
 const computedSize = computed(() => {
     var bytes = props.folderInfo ? props.folderInfo.mediaDiskSize : props.mediaInfo!.fileSize;
@@ -60,15 +78,17 @@ function dotsClicked(event: Event){
     event.stopPropagation();
     showDropdown.value = !showDropdown.value;
 }
-
+function stopEvent(event: Event){
+    event.stopPropagation();
+}
 function bodyClickHandler(){
     showDropdown.value = false;
 }
 onMounted(() => {
-    document.body.addEventListener("click", bodyClickHandler);
+    document.body.addEventListener("mousedown", bodyClickHandler);
 })
 onUnmounted(() => {
-    document.body.removeEventListener("click", bodyClickHandler);
+    document.body.removeEventListener("mousedown", bodyClickHandler);
 })
 
 async function rename(){
@@ -100,10 +120,10 @@ async function del(){
 
 <template>
 
-    <div class="tile-container">
+    <div class="tile-container" :class="getClass()">
         <div class="left-side">
             <template v-if="mediaInfo">
-                <div class="ext">{{ computedExtension }}</div>
+                <div class="ext" v-if="isMedia()">{{ computedExtension }}</div>
                 <img src="/file-icon.png">
             </template>
             <img v-else src="/folder-icon.png">
@@ -125,23 +145,34 @@ async function del(){
         </div>
         <div class="dots" @click="dotsClicked">
             &#8230;
-            <div class="context-menu" :class="{active: showDropdown}">
+            <div class="context-menu" :class="{active: showDropdown}" @mousedown="stopEvent"> 
                 <div class="menu-item" @click="rename">Rename</div>
                 <div class="menu-item" @click="del">Delete</div>
             </div>
         </div>
+        <div v-if="mediaInfo && mediaInfo.progress != null" class="progress" :style="{width: (mediaInfo.progress*100)+'%'}"></div>
+        <div v-if="mediaInfo && mediaInfo.progress != null" class="progress progress-gray"></div>
     </div>
 </template>
 
 <style scoped>
 
+.video {
+    --media-color: #a46bff;
+}
+.audio {
+    --media-color: #47a2f8;
+}
+
 .tile-container {
     cursor: pointer;
     height: 48px;
     display: flex;
-    background: #222;
-    box-shadow: 2px 2px 3px rgba(0,0,0,0.2);
+    background: var(--tile-bg);
+    box-shadow: var(--tile-shadow);
     position: relative;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .dots{
@@ -151,13 +182,13 @@ async function del(){
     padding: 2px 6px 8px 6px;;
     font-weight: 700;
     font-size: 14px;
-    color: #ccc;
+    color: var(--dots-color);
     border-radius: 2px;
 }
 
 .dots:hover {
     background-color: rgba(0,0,0,0.2);
-    color: white;
+    color: var(--dots-active-color);
 }
 
 .left-side {
@@ -178,6 +209,7 @@ async function del(){
 
 .primary-name {
     overflow: hidden;
+    font-weight: 400;
     width: 100%;
     min-width: 100%;
     margin: 1px 0 0 0;
@@ -192,7 +224,7 @@ async function del(){
     font-size: 14px;
     text-transform: uppercase;
     border-radius: 3px;
-    background-color: rgb(0, 183, 255);
+    background-color: var(--media-color);
     color: white;
     box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
@@ -204,7 +236,7 @@ async function del(){
     justify-content: space-between;
     margin-top: 1px;
     margin-right: 4px;
-    color: #ccc;
+    color: var(--text-muted);
 }
 
 .modify-date{
@@ -212,4 +244,20 @@ async function del(){
     top: 0;
     left: 35%;
 }
+
+.progress{
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background-color: var(--media-color);
+}
+
+.progress-gray{
+    background-color: var(--progress-gray);
+    z-index: 1;
+    width: 100%;
+}
+
 </style>

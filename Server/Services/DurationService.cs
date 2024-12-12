@@ -29,6 +29,10 @@ public class DurationService
         {
             return duration;
         }
+        if (!FileTypeHelper.IsMediaFile(fullPath))
+        {
+            return null;
+        }
         try
         {
             var mediaInfo = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(fullPath);

@@ -12,7 +12,6 @@ function handleMediaClick(mediaInfo: MediaInfo) {
     pathService.appendFile(mediaInfo);
 }
 
-// Emit "folder-clicked" event with a string payload
 function handleFolderClick(folderInfo: FolderInfo) {
     pathService.appendFolder(folderInfo.folderName);
 }
@@ -180,14 +179,15 @@ function refresh(){
     cursor: pointer;
     outline: none;
     border: none;
-    color: white;
+    color: var(--sort-btn-color);
     background: none;
     padding: 4px 8px;
     border-radius: 3px;;
     margin-bottom: 2px;
 }
 .btn:hover{
-    background: rgba(0,0,0,0.2);
+    color: var(--sort-btn-hover-color);
+    background: var(--sort-btn-hover-bg);
 }
 .sort-dropdown{
     padding: 4px;

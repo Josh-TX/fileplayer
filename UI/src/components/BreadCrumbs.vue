@@ -38,8 +38,7 @@ function navigate(index: number) {
 
 .link {
     padding: 0 8px;
-    color: rgb(115, 220, 255);
-    /* This makes the link inherit its color from the parent element */
+    color: var(--text-link);
 }
 .link:hover{
     text-decoration: underline;

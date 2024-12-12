@@ -9,10 +9,10 @@ namespace FilePlayer.Controllers
         private DurationService _durationService;
         private ProgressService _progressService;
         private SettingsService _settingsService;
-        private string[] _mediaExtensions = new[]{
-            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx",
-            "mp3", "wav", "aac", "flac", "ogg", "alac", "m4a", "opus", "mid", "midi"
-        };
+        //private string[] _mediaExtensions = new[]{
+        //    "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx",
+        //    "mp3", "wav", "aac", "flac", "ogg", "alac", "m4a", "opus", "mid", "midi"
+        //};
 
         public ApiController(
             DurationService durationService,
@@ -52,18 +52,17 @@ namespace FilePlayer.Controllers
                 };
             }).ToList();
             var fileNames = Directory.GetFiles(fullDirectory).Select(f => Path.GetFileName(f)).ToList();
-            var mediaFilenames = fileNames.Where(filename => _mediaExtensions.Any(ext => filename.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)));
-            var mediaInfos = mediaFilenames.Select(mediaFilename =>
+            var mediaInfos = fileNames.Select(filename =>
             {
-                var fileInfo = new FileInfo(Path.Combine(fullDirectory, mediaFilename));
+                var fileInfo = new FileInfo(Path.Combine(fullDirectory, filename));
                 var size = fileInfo.Length;
-                var fileId = FileIdHelper.GetId(mediaFilename, size);
+                var fileId = FileIdHelper.GetId(filename, size);
                 //Calculating the duration is very time consuming (roughly 100ms per file), so here we only include it if it's cached
                 var duration = _durationService.TryGetCachedDuration(fileId);
                 var progressTuple = _progressService.GetProgressTuple(fileId);
                 return new MediaInfo
                 {
-                    FileName = mediaFilename,
+                    FileName = filename,
                     Duration = duration,
                     FileSize = size,
                     ModifyDate = fileInfo.LastWriteTime,
@@ -91,9 +90,8 @@ namespace FilePlayer.Controllers
             }
             var directories = Directory.GetDirectories(fullDirectory).Select(d => Path.GetFileName(d)).ToList();
             var fileNames = Directory.GetFiles(fullDirectory).Select(f => Path.GetFileName(f)).ToList();
-            var mediaFilenames = fileNames.Where(filename => _mediaExtensions.Any(ext => filename.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)));
-
-            var taskRunner = new TaskPoolRunner(2);
+            var mediaFilenames = fileNames.Where(filename => FileTypeHelper.IsMediaFile(filename));
+            var taskRunner = new TaskPoolRunner(2);//run up to 2 tasks concurrently
             var durations = await taskRunner.Run(mediaFilenames, async fileName =>
             {
                 var fullPath = Path.Combine(fullDirectory, fileName);
@@ -133,10 +131,6 @@ namespace FilePlayer.Controllers
         [Route("media-info")]
         public async Task<ActionResult<MediaInfo>> GetMediaInfo([FromQuery] string path = "")
         {
-            if (!_mediaExtensions.Any(ext => path.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
-            {
-                return BadRequest(new { Message = "not a media file" });
-            }
             var fullPath = Path.Combine(_dataFolderPath, path);
             var fileInfo = new FileInfo(fullPath);
             var fileName = Path.GetFileName(path);
@@ -168,7 +162,7 @@ namespace FilePlayer.Controllers
             {
                 return BadRequest("progress is NaN");
             }
-            if (!_mediaExtensions.Any(ext => path.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
+            if (!FileTypeHelper.IsMediaFile(path))
             {
                 return BadRequest(new { Message = "not a media file" });
             }
@@ -259,10 +253,6 @@ namespace FilePlayer.Controllers
             }
             else if (System.IO.File.Exists(fullPath))
             {
-                if (!_mediaExtensions.Any(ext => newName.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return BadRequest("media files must have a valid file extension");
-                }
                 var parentPath = Path.GetDirectoryName(fullPath)!;
                 var newFullPath = Path.Combine(parentPath, newName);
                 if (System.IO.File.Exists(newFullPath) || Directory.Exists(newFullPath))
@@ -315,11 +305,8 @@ namespace FilePlayer.Controllers
             }
             foreach (var file in dirInfo.GetFiles())
             {
-                if (_mediaExtensions.Any(ext => file.Name.EndsWith("." + ext, StringComparison.OrdinalIgnoreCase)))
-                {
-                    totalSize += file.Length;
-                    mediaDiskSize++;
-                }
+                totalSize += file.Length;
+                mediaDiskSize++;
             }
             foreach (var subDirInfo in dirInfo.GetDirectories())
             {

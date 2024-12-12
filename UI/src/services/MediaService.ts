@@ -77,7 +77,7 @@ class MediaService{
         });
         el.addEventListener('play', () => {
             if (this.isSafariMobile()){
-                el.currentTime = 10;
+                //might need to do something here
             }
         });
         el.addEventListener('pause', () => {

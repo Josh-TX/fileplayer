@@ -65,9 +65,9 @@ function processFiles(files: FileList) {
 
 <style scoped>
 .file-drop-area {
-    border: 2px dashed #ccc;
+    border: 2px dashed var(--border-filedrop);
     height: 20vh;
-    min-height: 300px;
+    min-height: 35vh;
     text-align: center;
     display: flex;
     align-items: center;
@@ -78,7 +78,7 @@ function processFiles(files: FileList) {
 }
 
 .file-drop-area.drag-over {
-    border-color: #44AAFF;
+    border-color: var(--border-filedrop-active);
 }
 
 .file-drop-area p {
