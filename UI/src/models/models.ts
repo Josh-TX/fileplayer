@@ -33,4 +33,23 @@ export type Settings = {
     playbackSpeed: number;
     sortBy: string;
     sortDesc: boolean;
+    useMDate: boolean;
+    preferredHeight: number | null;
+}
+
+export type UrlInfo = {
+    title: string;
+    duration: number;
+    thumbnailUrl: string;
+    heights: string[];
+    audioOnly: boolean;
+    publishDate: string;
+}
+
+export type UploadFromUrlRequest = {
+    path: string;
+    url: string;
+    preferredHeight: number | null;
+    overrideName: string;
+    useMDate: boolean;
 }

@@ -1,4 +1,6 @@
 :root {
+    color-scheme: light dark;
+
     --text-default: #333;
     --text-muted: #999;
     --text-primary: #3498db;
@@ -72,6 +74,9 @@ body {
     height: 100%;
 }
 
+.text-muted{
+    color: var(--text-muted);
+}
 
 
 .context-menu {

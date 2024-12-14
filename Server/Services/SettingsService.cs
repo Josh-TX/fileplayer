@@ -7,6 +7,8 @@ public class Settings
     public double PlaybackSpeed { get; set; } 
     public required string SortBy { get; set; }
     public bool SortDesc { get; set; }
+    public int? PreferredHeight { get; set; }
+    public bool UseMDate { get; set; }
 }
 
 public class SettingsService
@@ -57,7 +59,9 @@ public class SettingsService
         {
             PlaybackSpeed = 1,
             SortBy = "name",
-            SortDesc = true
+            SortDesc = true,
+            PreferredHeight = 720,
+            UseMDate = false
         };
     }
 }

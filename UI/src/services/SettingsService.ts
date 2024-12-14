@@ -6,7 +6,9 @@ class SettingsService {
     private _settings: Settings = {
         sortBy: "name",
         playbackSpeed: 1,
-        sortDesc: true
+        sortDesc: true,
+        preferredHeight: 720,
+        useMDate: false
     }
     private _settingsPromise: Promise<Settings>;
 
@@ -22,14 +24,32 @@ class SettingsService {
     }
 
     updatePlaybackSpeed(speed: number){
-        this._settings.playbackSpeed = speed;
-        apiAccess.updateSettings(this._settings);
+        if (this._settings.playbackSpeed != speed){
+            this._settings.playbackSpeed = speed;
+            apiAccess.updateSettings(this._settings);
+        }
     }
 
     updateSort(sortBy: string, sortDesc: boolean){
-        this._settings.sortBy = sortBy;
-        this._settings.sortDesc = sortDesc;
-        apiAccess.updateSettings(this._settings);
+        if (this._settings.sortBy != sortBy || this._settings.sortDesc != sortDesc){
+            this._settings.sortBy = sortBy;
+            this._settings.sortDesc = sortDesc;
+            apiAccess.updateSettings(this._settings);
+        }
+    }
+
+    updatePreferredHeight(preferredHeight: number | null){
+        if (this._settings.preferredHeight != preferredHeight){
+            this._settings.preferredHeight = preferredHeight;
+            apiAccess.updateSettings(this._settings);
+        }
+    }
+
+    updateUseMDate(useMDate: boolean){
+        if (this._settings.useMDate != useMDate){            
+            this._settings.useMDate = useMDate;
+            apiAccess.updateSettings(this._settings);
+        }
     }
 }
 export var settingsService = new SettingsService()

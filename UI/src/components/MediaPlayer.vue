@@ -13,7 +13,9 @@ watch(pathService.getPath(),(newVal, oldVal) => {
     updateSrc();
 });
 function updateSrc(){
-    src.value = baseUrl + "/data/" + pathService.getPathString();
+    //we can't encodeURIComponent the path string because the slashes need to be not encoded
+    var path = pathService.getPath().value.map(z => encodeURIComponent(z));
+    src.value = baseUrl + "/data/" + path.join("/");
 }
 updateSrc();
 if (!mediaInfo.value){

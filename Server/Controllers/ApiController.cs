@@ -9,19 +9,18 @@ namespace FilePlayer.Controllers
         private DurationService _durationService;
         private ProgressService _progressService;
         private SettingsService _settingsService;
-        //private string[] _mediaExtensions = new[]{
-        //    "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx",
-        //    "mp3", "wav", "aac", "flac", "ogg", "alac", "m4a", "opus", "mid", "midi"
-        //};
+        private DownloadService _downloadService;
 
         public ApiController(
             DurationService durationService,
             ProgressService progressService,
-            SettingsService settingsService
+            SettingsService settingsService,
+            DownloadService downloadService
             ) {
             _durationService = durationService;
             _progressService = progressService;
             _settingsService = settingsService;
+            _downloadService = downloadService;
         }
 
         private readonly string _dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
@@ -287,12 +286,36 @@ namespace FilePlayer.Controllers
                 return BadRequest("can't create root directory");
             }
             string fullPath = Path.Combine(_dataFolderPath, path);
-            if (Directory.Exists(fullPath) || System.IO.File.Exists(fullPath)) {
+            if (Directory.Exists(fullPath) || System.IO.File.Exists(fullPath))
+            {
                 return BadRequest("name already taken");
             }
             Directory.CreateDirectory(fullPath);
             return Ok();
         }
+
+        [HttpGet]
+        [Route("get-url-info")]
+        public async Task<IActionResult> GetUrlInfo([FromQuery] string url)
+        {
+            var info = await _downloadService.GetInfo(url);
+            return Ok(info);
+        }
+
+        [HttpPost]
+        [Route("upload-from-url")]
+        public async Task<IActionResult> UploadFromUrl([FromBody] UploadFromUrlRequest request)
+        {
+            string fullDirectory = Path.Combine(_dataFolderPath, request.Path);
+            if (!Directory.Exists(fullDirectory))
+            {
+                return NotFound(new { Message = "Directory not found." });
+            }
+            _downloadService.StartDownload(fullDirectory, request.Url, request.PreferredHeight, request.OverrideName, request.UseMDate);
+            return Ok();
+        }
+
+
 
         private (long MediaDiskSize, int MediaFileCount) GetFolderSizeAndFileCount(string folderPath)
         {
@@ -342,6 +365,26 @@ namespace FilePlayer.Controllers
         public DateTime ModifyDate { get; set; }
         public DateOnly? ProgressDate { get; set; }
         public float? Progress { get; set; }
+    }
+
+    public class UrlInfo
+    {
+        public required string Title { get; set; }
+        public int? Duration { get; set; }
+        public string? ThumbnailUrl { get; set; }
+        public DateTime? PublishDate { get; set; }
+        public IEnumerable<string> Heights { get; set; }
+        public bool AudioOnly { get; set; }
+
+    }
+
+    public class UploadFromUrlRequest
+    {
+        public required string Path { get; set; }
+        public required string Url { get; set; }
+        public int? PreferredHeight { get; set; }
+        public string? OverrideName { get; set; }
+        public bool UseMDate { get; set; }
     }
 
     public class GetDurationsResponse

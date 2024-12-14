@@ -6,6 +6,7 @@ import { pathService } from '@/services/PathService';
 import type { FolderInfo, MediaInfo } from '@/models/models';
 import { settingsService } from '@/services/SettingsService';
 import UploadFileModal from './UploadFileModal.vue';
+import UploadFromUrl from './UploadUrlModal.vue'
 import Tile from './Tile.vue';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
@@ -29,7 +30,8 @@ watch(pathService.getPath(), (newVal, oldVal) => {
 
 async function load() {
     if (!pathService.isFile().value) {
-        var result = await apiAccess.getDirContents(pathService.getPathString());
+        var pathString = pathService.getPathString();
+        var result = await apiAccess.getDirContents(pathString);
         var settings = await settingsService.getSettingsAsync();
         sortBy.value = settings.sortBy;
         sortDesc.value = settings.sortDesc;
@@ -37,8 +39,8 @@ async function load() {
         mediaInfos.value = result.mediaInfos
         sort();
         if (result.mediaInfos.some(z => z.duration == null)) {
-            var durationsResponse = await apiAccess.getDurations(pathService.getPathString());
-            if (mediaInfos.value != result.mediaInfos){
+            var durationsResponse = await apiAccess.getDurations(pathString);
+            if (pathString != pathService.getPathString()){
                 //path must have changed
                 return;
             }
@@ -134,8 +136,6 @@ function refresh(){
     load();
 }
 
-
-
 </script>
 
 <template>
@@ -163,6 +163,7 @@ function refresh(){
         </div>
         <div style="display: flex; justify-content: end; gap: 12px;">
             <button @click="newFolder">New Folder</button>
+            <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
             <UploadFileModal @uploaded="refresh"></UploadFileModal>
         </div>
     </div>

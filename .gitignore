@@ -2,6 +2,7 @@ Server/bin
 Server/obj
 Server/data
 Server/metadata
+Server/binaries
 Server/.vs
 Server/wwwroot/*
 UI/.vscode

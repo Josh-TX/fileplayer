@@ -27,6 +27,7 @@ builder.Services.Configure<FormOptions>(options =>
 builder.Services.AddSingleton<DurationService>();
 builder.Services.AddSingleton<ProgressService>();
 builder.Services.AddSingleton<SettingsService>();
+builder.Services.AddSingleton<DownloadService>();
 
 var app = builder.Build();
 

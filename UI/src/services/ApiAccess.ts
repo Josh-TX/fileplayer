@@ -1,4 +1,4 @@
-import type { DirContentsResponse, GetDurationsResponse, MediaInfo, Settings } from "@/models/models";
+import type { DirContentsResponse, GetDurationsResponse, MediaInfo, Settings, UploadFromUrlRequest, UrlInfo } from "@/models/models";
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 class ApiAccess {
@@ -54,6 +54,17 @@ class ApiAccess {
 
     async rename(path: string, newName: string): Promise<any> {
         return await fetch(`${baseUrl}/api/rename?path=${encodeURIComponent(path)}&newName=${encodeURIComponent(newName)}`, {method: "POST"});
+    }
+
+    async getUrlInfo(url: string): Promise<UrlInfo> {
+        return await fetch(`${baseUrl}/api/get-url-info?url=${encodeURIComponent(url)}`).then(res => res.json());
+    }
+
+    async uploadFromUrl(request: UploadFromUrlRequest): Promise<any> {
+        return await fetch(`${baseUrl}/api/upload-from-url`, {
+            method: "POST", 
+            headers: {'Accept': 'application/json','Content-Type': 'application/json'},
+            body: JSON.stringify(request)});
     }
 }
 
