@@ -24,8 +24,7 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 1024L * 1024 * 1024 * 2; // 2 GB
 });
 
-builder.Services.AddSingleton<DurationService>();
-builder.Services.AddSingleton<ProgressService>();
+builder.Services.AddSingleton<FileInfoService>();
 builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<DownloadService>();
 

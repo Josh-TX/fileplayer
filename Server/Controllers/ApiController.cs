@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using System.IO;
+using static System.Net.WebRequestMethods;
 
 namespace FilePlayer.Controllers
 {
@@ -6,19 +8,16 @@ namespace FilePlayer.Controllers
     [ApiController]
     public class ApiController : ControllerBase
     {
-        private DurationService _durationService;
-        private ProgressService _progressService;
+        private FileInfoService _fileInfoService;
         private SettingsService _settingsService;
         private DownloadService _downloadService;
 
         public ApiController(
-            DurationService durationService,
-            ProgressService progressService,
+            FileInfoService fileInfoService,
             SettingsService settingsService,
             DownloadService downloadService
             ) {
-            _durationService = durationService;
-            _progressService = progressService;
+            _fileInfoService = fileInfoService;
             _settingsService = settingsService;
             _downloadService = downloadService;
         }
@@ -56,17 +55,14 @@ namespace FilePlayer.Controllers
                 var fileInfo = new FileInfo(Path.Combine(fullDirectory, filename));
                 var size = fileInfo.Length;
                 var fileId = FileIdHelper.GetId(filename, size);
-                //Calculating the duration is very time consuming (roughly 100ms per file), so here we only include it if it's cached
-                var duration = _durationService.TryGetCachedDuration(fileId);
-                var progressTuple = _progressService.GetProgressTuple(fileId);
+                var info = _fileInfoService.GetInfoTuple(fileId);
                 return new MediaInfo
                 {
                     FileName = filename,
-                    Duration = duration,
+                    Duration = info?.Item2,
                     FileSize = size,
                     ModifyDate = fileInfo.LastWriteTime,
-                    Progress = progressTuple?.Item1,
-                    ProgressDate = progressTuple?.Item2,
+                    Progress = info?.Item1,
                 };
             }); 
 
@@ -99,11 +95,11 @@ namespace FilePlayer.Controllers
                 int? duration;
                 try
                 {
-                    duration = await _durationService.CalculateDuration(fileId, fullPath);
+                    duration = await _fileInfoService.CalculateDuration(fileId, fullPath);
                 } catch (Exception)
                 {
                     //sometimes there's a failure when reading concurrently
-                    duration = await _durationService.CalculateDuration(fileId, fullPath);
+                    duration = await _fileInfoService.CalculateDuration(fileId, fullPath);
                 }
                 if (duration != null)
                 {
@@ -139,16 +135,15 @@ namespace FilePlayer.Controllers
             }
             var size = fileInfo.Length;
             var fileId = FileIdHelper.GetId(fileName, size);
-            var duration = await _durationService.CalculateDuration(fileId, fullPath);
-            var progressTuple = _progressService.GetProgressTuple(fileId);
+            var duration = await _fileInfoService.CalculateDuration(fileId, fullPath);
+            var infoTuple = _fileInfoService.GetInfoTuple(fileId);
             var mediaInfo = new MediaInfo
             {
                 FileName = fileName,
-                Duration = duration,
+                Duration = infoTuple?.Item2,
                 FileSize = size,
                 ModifyDate = fileInfo.LastWriteTime,
-                Progress = progressTuple?.Item1,
-                ProgressDate = progressTuple?.Item2,
+                Progress = infoTuple?.Item1,
             };
             return Ok(mediaInfo);
         }
@@ -174,7 +169,7 @@ namespace FilePlayer.Controllers
             }
             var size = fileInfo.Length;
             var fileId = FileIdHelper.GetId(fileName, size);
-            _progressService.SetProgress(fileId, Convert.ToSingle(progress));
+            _fileInfoService.SetProgress(fileId, Convert.ToSingle(progress));
             return Ok();
         }
 
@@ -222,13 +217,21 @@ namespace FilePlayer.Controllers
             {
                 return BadRequest("can't delete root directory");
             }
-            else if (System.IO.File.Exists(fullPath))
+            if (System.IO.File.Exists(fullPath))
             {
+                var size = new FileInfo(fullPath).Length;
+                var fileId = FileIdHelper.GetId(Path.GetFileName(path), size);
                 System.IO.File.Delete(fullPath);
+                _fileInfoService.FileRemoved(fileId);
             }
             else if (Directory.Exists(fullPath))
             {
+                var fileIds = GetFileIdsRecursive(fullPath);
                 System.IO.Directory.Delete(fullPath, recursive: true);
+                foreach(var fileId in fileIds)
+                {
+                    _fileInfoService.FileRemoved(fileId);
+                }
             }
             else
             {
@@ -250,7 +253,7 @@ namespace FilePlayer.Controllers
             {
                 return BadRequest("can't rename root directory");
             }
-            else if (System.IO.File.Exists(fullPath))
+            if (System.IO.File.Exists(fullPath))
             {
                 var parentPath = Path.GetDirectoryName(fullPath)!;
                 var newFullPath = Path.Combine(parentPath, newName);
@@ -258,7 +261,9 @@ namespace FilePlayer.Controllers
                 {
                     return BadRequest("new name already taken");
                 }
+                var size = new FileInfo(fullPath).Length;
                 System.IO.File.Move(fullPath, newFullPath);
+                _fileInfoService.FileRenamed(Path.GetFileName(fullPath), Path.GetFileName(newFullPath), size);
             }
             else if (Directory.Exists(fullPath))
             {
@@ -340,6 +345,25 @@ namespace FilePlayer.Controllers
             return (totalSize, mediaDiskSize);
         }
 
+        private List<Guid> GetFileIdsRecursive(string folderPath)
+        {
+            var fileIds = new List<Guid>();
+            var dirInfo = new DirectoryInfo(folderPath);
+            if (!dirInfo.Exists)
+            {
+                throw new DirectoryNotFoundException($"The directory {folderPath} does not exist.");
+            }
+            foreach (var file in dirInfo.GetFiles())
+            {
+                fileIds.Add(FileIdHelper.GetId(file.Name, file.Length));
+            }
+            foreach (var subDirInfo in dirInfo.GetDirectories())
+            {
+                var subDirFileIds = GetFileIdsRecursive(subDirInfo.FullName);
+                fileIds.AddRange(subDirFileIds);
+            }
+            return fileIds;
+        }
     }
 
     public class DirContentsResponse
@@ -363,7 +387,6 @@ namespace FilePlayer.Controllers
         public long FileSize { get; set; }
         public int? Duration { get; set; }
         public DateTime ModifyDate { get; set; }
-        public DateOnly? ProgressDate { get; set; }
         public float? Progress { get; set; }
     }
 

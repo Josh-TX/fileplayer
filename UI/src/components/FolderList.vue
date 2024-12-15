@@ -106,20 +106,6 @@ function sort(){
         mediaInfos.value.sort((z1, z2) => z2.fileSize - z1.fileSize)
         
     }
-    else if (sortBy.value == "played"){
-        mediaInfos.value.sort((z1, z2) => {
-            if (z1.progressDate == null && z2.progressDate != null){
-                return 1;
-            } 
-            if (z1.progressDate != null && z2.progressDate == null){
-                return -1;
-            }
-            if (z1.progressDate != null && z2.progressDate != null){
-                return new Date(z2.progressDate).getTime() - new Date(z1.progressDate).getTime()
-            }
-            return 0;
-        })
-    } 
     else {
         folderInfos.value.sort((z1, z2) => z1.folderName.localeCompare(z2.folderName))
         mediaInfos.value.sort((z1, z2) => z1.fileName.localeCompare(z2.fileName))
@@ -148,7 +134,6 @@ function refresh(){
                     <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
                     <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
                     <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
-                    <div class="menu-item" @click="changeSortBy('played')"><span v-if="sortBy=='played'">✓</span>date played</div>
                 </div>
             </button>
             <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>

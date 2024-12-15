@@ -9,7 +9,6 @@ export type MediaInfo = {
     duration: number | null;
     modifyDate: string;
     progress: number;
-    progressDate: string | null;
 }
 
 export type FolderInfo = {
