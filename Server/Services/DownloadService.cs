@@ -19,10 +19,15 @@ public class DownloadService
     public async Task<UrlInfo> GetInfo(string url)
     {
         var ytdl = new YoutubeDL();
+        Directory.CreateDirectory(_binariesPath);
         ytdl.YoutubeDLPath = Path.Combine(_binariesPath, GetYtDlpBinaryName());
         if (!File.Exists(ytdl.YoutubeDLPath))
         {
             await Utils.DownloadYtDlp();
+            if (!File.Exists(ytdl.YoutubeDLPath))
+            {
+                throw new Exception("unable to download the ytdlp binaries");
+            }
         }
         var fetchResult = await ytdl.RunVideoDataFetch(url);
         var resolutions = fetchResult.Data.Formats.Select(z => z.Resolution).Distinct().ToList();
@@ -50,10 +55,7 @@ public class DownloadService
     {
         //intentionally async void.
 
-        if (!string.IsNullOrEmpty(_binariesPath))
-        {
-            Directory.CreateDirectory(_binariesPath);
-        }
+        Directory.CreateDirectory(_binariesPath);
         var ytdl = new YoutubeDL();
         ytdl.YoutubeDLPath = Path.Combine(_binariesPath, GetYtDlpBinaryName());
         if (!File.Exists(ytdl.YoutubeDLPath))
