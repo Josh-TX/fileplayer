@@ -8,7 +8,17 @@ using YoutubeDLSharp.Options;
 
 public class DownloadService
 {
-    private string _binariesPath = Path.Combine(BasePathHelper.BasePath, "binaries");
+#if DEBUG
+    private string _ytdlpPath = "binaries/yt-dlp.exe";
+    private string _ffmpegPath = "binaries/ffmpeg.exe";
+#else
+    private string _ytdlpPath = "yt-dlp";
+    private string _ffmpegPath = "ffmpeg";
+#endif
+
+    //private string _binariesPath = Path.Combine(BasePathHelper.BasePath, "binaries");
+
+
     private List<string> _commonHeights = new List<string> { "240", "360", "480", "720", "1080" };
 
     public DownloadService()
@@ -19,17 +29,12 @@ public class DownloadService
     public async Task<UrlInfo> GetInfo(string url)
     {
         var ytdl = new YoutubeDL();
-        Directory.CreateDirectory(_binariesPath);
-        ytdl.YoutubeDLPath = Path.Combine(_binariesPath, GetYtDlpBinaryName());
-        if (!File.Exists(ytdl.YoutubeDLPath))
-        {
-            await Utils.DownloadYtDlp();
-            if (!File.Exists(ytdl.YoutubeDLPath))
-            {
-                throw new Exception("unable to download the ytdlp binaries");
-            }
-        }
+        ytdl.YoutubeDLPath = _ytdlpPath;
         var fetchResult = await ytdl.RunVideoDataFetch(url);
+        if (!fetchResult.Success)
+        {
+            throw new Exception("ytdl.RunVideoDataFetch errored: " + String.Join(" | ", fetchResult.ErrorOutput));
+        }
         var resolutions = fetchResult.Data.Formats.Select(z => z.Resolution).Distinct().ToList();
         var availableHeights = _commonHeights.Where(height => resolutions.Any(res => res.EndsWith("x" + height)));
         var hasVideo = resolutions.Any(z => z != "audio only");
@@ -55,18 +60,9 @@ public class DownloadService
     {
         //intentionally async void.
 
-        Directory.CreateDirectory(_binariesPath);
         var ytdl = new YoutubeDL();
-        ytdl.YoutubeDLPath = Path.Combine(_binariesPath, GetYtDlpBinaryName());
-        if (!File.Exists(ytdl.YoutubeDLPath))
-        {
-            await Utils.DownloadYtDlp();
-        }
-        ytdl.FFmpegPath = Path.Combine(_binariesPath, GetFfmpegBinaryName());
-        if (!File.Exists(ytdl.FFmpegPath))
-        {
-            await Utils.DownloadFFmpeg();
-        }
+        ytdl.YoutubeDLPath = _ytdlpPath;
+        ytdl.FFmpegPath = _ffmpegPath;
 
         var options = new OptionSet();
         var tempOutputPath = Path.Combine(outputPath, $"temp-download-folder-{DateTime.Now.ToString("HH-mm-ss")}");
@@ -136,24 +132,5 @@ public class DownloadService
         }
 
         return filePath;
-    }
-
-
-    private static string GetYtDlpBinaryName()
-    {
-#if DEBUG
-        return "yt-dlp.exe";
-#else
-        return "yt-dlp";
-#endif
-    }
-
-    private static string GetFfmpegBinaryName()
-    {
-#if DEBUG
-        return "ffmpeg.exe";
-#else
-        return "ffmpeg";
-#endif
     }
 }

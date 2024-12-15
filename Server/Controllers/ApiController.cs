@@ -309,7 +309,7 @@ namespace FilePlayer.Controllers
 
         [HttpPost]
         [Route("upload-from-url")]
-        public async Task<IActionResult> UploadFromUrl([FromBody] UploadFromUrlRequest request)
+        public IActionResult UploadFromUrl([FromBody] UploadFromUrlRequest request)
         {
             string fullDirectory = Path.Combine(_dataFolderPath, request.Path);
             if (!Directory.Exists(fullDirectory))
@@ -396,7 +396,7 @@ namespace FilePlayer.Controllers
         public int? Duration { get; set; }
         public string? ThumbnailUrl { get; set; }
         public DateTime? PublishDate { get; set; }
-        public IEnumerable<string> Heights { get; set; }
+        public required IEnumerable<string> Heights { get; set; }
         public bool AudioOnly { get; set; }
 
     }

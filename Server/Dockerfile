@@ -13,6 +13,14 @@ RUN dotnet publish -a $TARGETARCH -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
 WORKDIR /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
+
+RUN apt-get update && apt-get install -y wget
+RUN wget -qO /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp && chmod a+rx /usr/local/bin/yt-dlp
+RUN apt-get update && apt-get install -y ffmpeg && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 COPY --from=dotnet-build /app .
 RUN mkdir /data
 RUN mkdir /metadata
