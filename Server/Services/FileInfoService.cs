@@ -22,6 +22,7 @@ public class FileInfoService
     public FileInfoService()
     {
         _fileInfos = Load();
+        Xabe.FFmpeg.FFmpeg.SetExecutablesPath(DownloadService.GetFFmpegPath());
     }
 
     public void FileRenamed(string oldName, string newName, long size)

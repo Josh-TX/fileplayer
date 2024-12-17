@@ -9,11 +9,11 @@ using YoutubeDLSharp.Options;
 public class DownloadService
 {
 #if DEBUG
-    private string _ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/yt-dlp.exe");
-    private string _ffmpegPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/ffmpeg.exe");
+    private static string _ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/yt-dlp.exe");
+    private static string _ffmpegPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/ffmpeg.exe");
 #else
-    private string _ytdlpPath = "yt-dlp";
-    private string _ffmpegPath = "ffmpeg";
+    private static string _ytdlpPath = "yt-dlp";
+    private static string _ffmpegPath = "ffmpeg";
 #endif
 
     //private string _binariesPath = Path.Combine(BasePathHelper.BasePath, "binaries");
@@ -107,6 +107,11 @@ public class DownloadService
         {
             Directory.Move(tempOutputPath, tempOutputPath + "-ERROR");
         }
+    }
+
+    public static string GetFFmpegPath()
+    {
+        return _ffmpegPath;
     }
 
     private string GetUniqueFilePath(string filePath)
