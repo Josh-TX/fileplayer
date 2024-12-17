@@ -9,8 +9,8 @@ using YoutubeDLSharp.Options;
 public class DownloadService
 {
 #if DEBUG
-    private string _ytdlpPath = "binaries/yt-dlp.exe";
-    private string _ffmpegPath = "binaries/ffmpeg.exe";
+    private string _ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/yt-dlp.exe");
+    private string _ffmpegPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/ffmpeg.exe");
 #else
     private string _ytdlpPath = "yt-dlp";
     private string _ffmpegPath = "ffmpeg";
@@ -23,7 +23,9 @@ public class DownloadService
 
     public DownloadService()
     {
-
+#if DEBUG
+        DownloadBinaries();
+#endif
     }
 
     public async Task<UrlInfo> GetInfo(string url)
@@ -63,7 +65,6 @@ public class DownloadService
         var ytdl = new YoutubeDL();
         ytdl.YoutubeDLPath = _ytdlpPath;
         ytdl.FFmpegPath = _ffmpegPath;
-
         var options = new OptionSet();
         var tempOutputPath = Path.Combine(outputPath, $"temp-download-folder-{DateTime.Now.ToString("HH-mm-ss")}");
         Directory.CreateDirectory(tempOutputPath);
@@ -75,15 +76,6 @@ public class DownloadService
         {
             options.Output = Path.Combine(tempOutputPath, "%(title)s.%(ext)s");
         }
-
-        //var progress = new Progress<DownloadProgress>(p =>
-        //{
-        //    if (p.State == DownloadState.Downloading)
-        //    {
-        //        Console.WriteLine($"Download in progress ({Math.Round(p.Progress * 1000) / 10}%) from " + url);
-        //    }
-        //});
-
         options.NoMtime = !useMDate;
         RunResult<string> result;
         if (preferredHeight != null)
@@ -91,7 +83,6 @@ public class DownloadService
             options.Format = $"bv*[height<={preferredHeight}]+ba / b[height<={preferredHeight}] / wv*+ba / w";
             result = await ytdl.RunVideoDownload(
                 url,
-                //progress: progress,
                 mergeFormat: DownloadMergeFormat.Mp4,
                 overrideOptions: options
             );
@@ -100,7 +91,6 @@ public class DownloadService
         {
             result = await ytdl.RunAudioDownload(
                 url,
-                //progress: progress,
                 AudioConversionFormat.Mp3,
                 overrideOptions: options
             );
@@ -112,7 +102,8 @@ public class DownloadService
             var oldPath = Path.Combine(tempOutputPath, filename);
             File.Move(oldPath, newPath);
             Directory.Delete(tempOutputPath, recursive: true);
-        } else
+        }
+        else
         {
             Directory.Move(tempOutputPath, tempOutputPath + "-ERROR");
         }
@@ -123,7 +114,7 @@ public class DownloadService
         string directory = Path.GetDirectoryName(filePath) ?? "";
         string fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
         string extension = Path.GetExtension(filePath);
-        int count = 0;
+        int count = 1;
 
         while (File.Exists(filePath))
         {
@@ -133,4 +124,22 @@ public class DownloadService
 
         return filePath;
     }
+
+#if DEBUG
+    /// <summary>
+    /// For debug mode only
+    /// </summary>
+    private async Task DownloadBinaries()
+    {
+        Directory.CreateDirectory("binaries");
+        if (!File.Exists(_ytdlpPath))
+        {
+            await Utils.DownloadYtDlp(Path.GetDirectoryName(_ytdlpPath));
+        }
+        if (!File.Exists(_ffmpegPath))
+        {
+            await Utils.DownloadFFmpeg(Path.GetDirectoryName(_ffmpegPath));
+        }
+    }
+#endif
 }

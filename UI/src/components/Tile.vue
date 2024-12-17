@@ -41,6 +41,10 @@ function isMedia(){
     return props.mediaInfo && fileTypeHelper.isMedia(props.mediaInfo.fileName);
 };
 
+function isDownload(){
+    return props.folderInfo && /^temp-download-folder-\d\d-\d\d-\d\d$/.test(props.folderInfo.folderName);
+};
+
 const computedSize = computed(() => {
     var bytes = props.folderInfo ? props.folderInfo.mediaDiskSize : props.mediaInfo!.fileSize;
     if (bytes === 0) return '0 B';
@@ -115,10 +119,13 @@ async function del(){
                 <div class="ext" v-if="isMedia()">{{ computedExtension }}</div>
                 <img src="/file-icon.png">
             </template>
-            <img v-else src="/folder-icon.png">
+            <template v-else>
+                <img v-if="isDownload()" src="/folder-download-icon.png">
+                <img v-else src="/folder-icon.png">
+            </template>
         </div>
         <div class="right-side">
-            <h2 class="primary-name">{{ computedName }}</h2>
+            <h2 class="primary-name" :title="computedName">{{ computedName }}</h2>
             <div class="info-container">
                 <template v-if="mediaInfo">
                     <div>{{ computedSize }}</div>
