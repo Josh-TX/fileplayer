@@ -4,6 +4,7 @@ import FolderList from './components/FolderList.vue';
 import { pathService } from '@/services/PathService';
 import BreadCrumbs from './components/BreadCrumbs.vue';
 import MediaPlayer from './components/MediaPlayer.vue';
+import FolderSelectModal from './components/FolderSelectModal.vue'
 
 </script>
 
@@ -13,6 +14,7 @@ import MediaPlayer from './components/MediaPlayer.vue';
         <FolderList v-if="!pathService.isFile().value"></FolderList>
         <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
     </div>
+    <FolderSelectModal></FolderSelectModal>
 </template>
 
 <style scoped>

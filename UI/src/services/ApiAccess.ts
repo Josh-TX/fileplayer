@@ -1,4 +1,4 @@
-import type { DirContentsResponse, GetDurationsResponse, MediaInfo, Settings, UploadFromUrlRequest, UrlInfo } from "@/models/models";
+import type { CopyItemsRequest, DeleteItemsRequest, DirContentsResponse, GetDurationsResponse, MediaInfo, Settings, UploadFromUrlRequest, UrlInfo } from "@/models/models";
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 class ApiAccess {
@@ -48,8 +48,20 @@ class ApiAccess {
         return await fetch(`${baseUrl}/api/create-dir?path=${encodeURIComponent(path)}`, {method: "POST"});
     }
 
-    async delete(path: string): Promise<any> {
-        return await fetch(`${baseUrl}/api/delete?path=${encodeURIComponent(path)}`, {method: "DELETE"});
+    async copyItems(request: CopyItemsRequest): Promise<any> {
+        await fetch(`${baseUrl}/api/copy-items`, {
+            method: "POST", 
+            headers: {'Accept': 'application/json','Content-Type': 'application/json'},
+            body: JSON.stringify(request)
+        });
+    }
+
+    async deleteItems(request: DeleteItemsRequest): Promise<any> {
+        await fetch(`${baseUrl}/api/delete-items`, {
+            method: "POST", 
+            headers: {'Accept': 'application/json','Content-Type': 'application/json'},
+            body: JSON.stringify(request)
+        });
     }
 
     async rename(path: string, newName: string): Promise<any> {

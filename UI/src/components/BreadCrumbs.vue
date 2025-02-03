@@ -18,7 +18,7 @@ function navigate(index: number) {
 </script>
 
 <template>
-    <nav aria-label="breadcrumb">
+    <nav aria-label="breadcrumb" style="padding-left: 8px;">
         <ol class="breadcrumb">
             <li v-for="(item, index) in crumbs" :key="index" class="breadcrumb-item">
                 <!-- If it's not the last item, make it a clickable link -->
@@ -27,7 +27,7 @@ function navigate(index: number) {
                 </template>
                 <!-- If it's the last item, just display text -->
                 <template v-else>
-                    &nbsp;{{ item }}
+                    <span v-if="index != 0">&nbsp;</span>{{ item }}
                 </template>
             </li>
         </ol>
@@ -36,40 +36,4 @@ function navigate(index: number) {
 
 <style scoped>
 
-.link {
-    padding: 0 8px;
-    color: var(--text-link);
-}
-.link:hover{
-    text-decoration: underline;
-}
-
-.breadcrumb {
-    padding: 0;
-    margin: 0;
-    list-style: none;
-    display: flex;
-
-    font-size: 24px;
-    font-weight: semibold;
-}
-
-.breadcrumb-item {
-    margin-right: 5px;
-}
-
-.breadcrumb-item a {
-    text-decoration: none;
-}
-
-.breadcrumb-item::after {
-    line-height: 16px;;
-    content: '\276F';
-    content: '>';
-    margin-left: 5px;
-}
-
-.breadcrumb-item:last-child::after {
-    content: '';
-}
 </style>

@@ -1,9 +1,6 @@
-using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Stores the progress (as a float), and the duration (as an int) of each file being tracked
@@ -14,6 +11,7 @@ public class FileInfoService
     private Timer? _shortDebounceTimer;
     private Timer? _longTimer;
     private string _metadataPath = Path.Combine(BasePathHelper.BasePath, "metadata", "fileinfos.txt");
+    private string _ffmpegPath = DownloadService.GetFFmpegPath();
 
     //these determine the debounce time for the shortDebounceTimer and the longTimer
     private const int _shortSeconds = 4;
@@ -22,7 +20,6 @@ public class FileInfoService
     public FileInfoService()
     {
         _fileInfos = Load();
-        Xabe.FFmpeg.FFmpeg.SetExecutablesPath(DownloadService.GetFFmpegPath());
     }
 
     public void FileRenamed(string oldName, string newName, long size)
@@ -89,8 +86,8 @@ public class FileInfoService
         }
         try
         {
-            var mediaInfo = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(fullPath);
-            var seconds = Convert.ToInt32(Math.Ceiling(mediaInfo.Duration.TotalSeconds));
+            var duration = await GetMediaDuration(fullPath);
+            var seconds = (int)Math.Round(duration ?? 0);
             if (_fileInfos.TryGetValue(fileId, out tuple))
             {
                 tuple.Item2 = seconds;
@@ -107,6 +104,26 @@ public class FileInfoService
         {
             return null;
         }
+    }
+
+    private async Task<double?> GetMediaDuration(string videoPath)
+    {
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = _ffmpegPath,
+            Arguments = $"-i \"{videoPath}\"",
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+
+        string output = await process!.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        var match = Regex.Match(output, @"Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})");
+        if (!match.Success) return null;
+
+        return TimeSpan.Parse($"{match.Groups[1].Value}:{match.Groups[2].Value}:{match.Groups[3].Value}").TotalSeconds;
     }
 
 

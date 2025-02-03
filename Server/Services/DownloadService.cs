@@ -1,16 +1,12 @@
 using FilePlayer.Controllers;
-using Microsoft.Extensions.Options;
-using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
-using Xabe.FFmpeg;
 using YoutubeDLSharp;
 using YoutubeDLSharp.Options;
 
 public class DownloadService
 {
 #if DEBUG
-    private static string _ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/yt-dlp.exe");
-    private static string _ffmpegPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries/ffmpeg.exe");
+    private static string _ytdlpPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries", "yt-dlp.exe");
+    private static string _ffmpegPath = Path.Combine(Directory.GetCurrentDirectory(), "binaries", "ffmpeg.exe");
 #else
     private static string _ytdlpPath = "yt-dlp";
     private static string _ffmpegPath = "ffmpeg";

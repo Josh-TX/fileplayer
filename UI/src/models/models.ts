@@ -36,6 +36,16 @@ export type Settings = {
     preferredHeight: number | null;
 }
 
+export type CopyItemsRequest = {
+    filePaths: string[];
+    destinationDir: string;
+    isMove: boolean;
+}
+
+export type DeleteItemsRequest = {
+    filePaths: string[];
+}
+
 export type UrlInfo = {
     title: string;
     duration: number;

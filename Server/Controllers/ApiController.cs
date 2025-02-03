@@ -208,34 +208,37 @@ namespace FilePlayer.Controllers
             return Ok();
         }
 
-        [HttpDelete]
-        [Route("delete")]
-        public IActionResult Delete([FromQuery] string path = "")
+        [HttpPost]
+        [Route("delete-items")]
+        public IActionResult DeleteItems([FromBody] DeleteItemsRequest request)
         {
-            string fullPath = Path.Combine(_dataFolderPath, path);
-            if (path == "")
+            if (request.FilePaths.Any(z => z == ""))
             {
                 return BadRequest("can't delete root directory");
             }
-            if (System.IO.File.Exists(fullPath))
+            foreach(var filepath in request.FilePaths)
             {
-                var size = new FileInfo(fullPath).Length;
-                var fileId = FileIdHelper.GetId(Path.GetFileName(path), size);
-                System.IO.File.Delete(fullPath);
-                _fileInfoService.FileRemoved(fileId);
-            }
-            else if (Directory.Exists(fullPath))
-            {
-                var fileIds = GetFileIdsRecursive(fullPath);
-                System.IO.Directory.Delete(fullPath, recursive: true);
-                foreach(var fileId in fileIds)
+                string fullPath = Path.Combine(_dataFolderPath, filepath);
+                if (System.IO.File.Exists(fullPath))
                 {
+                    var size = new FileInfo(fullPath).Length;
+                    var fileId = FileIdHelper.GetId(Path.GetFileName(filepath), size);
+                    System.IO.File.Delete(fullPath);
                     _fileInfoService.FileRemoved(fileId);
                 }
-            }
-            else
-            {
-                return NotFound("File or Directory not found.");
+                else if (Directory.Exists(fullPath))
+                {
+                    var fileIds = GetFileIdsRecursive(fullPath);
+                    System.IO.Directory.Delete(fullPath, recursive: true);
+                    foreach (var fileId in fileIds)
+                    {
+                        _fileInfoService.FileRemoved(fileId);
+                    }
+                }
+                else
+                {
+                    //don't error since it's a bulk operation
+                }
             }
             return Ok();
         }
@@ -278,6 +281,37 @@ namespace FilePlayer.Controllers
             else
             {
                 return NotFound(new { Message = "File or Directory not found." });
+            }
+            return Ok();
+        }
+
+        [HttpPost]
+        [Route("copy-items")]
+        public IActionResult CopyItems([FromBody] CopyItemsRequest request)
+        {
+            if (request.FilePaths.Any(filepath => request.DestinationDir.StartsWith(filepath)))
+            {
+                return BadRequest("DestinationDir is a subdirectory of a dir being moved");
+            }
+            foreach (var file in request.FilePaths)
+            {
+                var newFileName = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
+                if (System.IO.File.Exists(newFileName))
+                {
+                    return BadRequest($"Destination file {newFileName} already exists");
+                }
+            }
+            foreach (var file in request.FilePaths)
+            {
+                var oldFilePath = Path.Combine(_dataFolderPath, file);
+                var newFilePath = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
+                if (request.IsMove)
+                {
+                    System.IO.File.Move(oldFilePath, newFilePath);
+                } else
+                {
+                    System.IO.File.Copy(oldFilePath, newFilePath);
+                }
             }
             return Ok();
         }
@@ -408,6 +442,18 @@ namespace FilePlayer.Controllers
         public int? PreferredHeight { get; set; }
         public string? OverrideName { get; set; }
         public bool UseMDate { get; set; }
+    }
+
+    public class CopyItemsRequest
+    {
+        public required IEnumerable<string> FilePaths { get; set; }
+        public required string DestinationDir { get; set; }
+        public required bool IsMove { get; set; }
+    }
+
+    public class DeleteItemsRequest
+    {
+        public required IEnumerable<string> FilePaths { get; set; }
     }
 
     public class GetDurationsResponse

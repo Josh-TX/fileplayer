@@ -4,11 +4,13 @@ import { apiAccess } from '@/services/ApiAccess';
 import { fileTypeHelper } from '@/services/FileTypeHelper';
 import { formatDuration } from '@/services/MiscHelpers';
 import { pathService } from '@/services/PathService';
+import { modalService } from '@/services/ModalService';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 var emits = defineEmits(['changed'])
 const props = defineProps<{
     folderInfo?: FolderInfo | undefined,
-    mediaInfo?: MediaInfo | undefined
+    mediaInfo?: MediaInfo | undefined,
+    allowChanges?: boolean | undefined,
 }>()
 
 const computedName = computed(() => {
@@ -93,6 +95,11 @@ async function rename(){
     }
 }
 
+async function copy(isMove: boolean){
+    modalService.startMove(pathService.getPath().value, [[...pathService.getPath().value, computedName.value].join("/")], isMove);
+}
+
+
 async function del(){
     var name = computedName.value;
     var msg = `delete file ${name}?`
@@ -104,7 +111,9 @@ async function del(){
         }
     }
     if (confirm(msg)){
-        await apiAccess.delete([...pathService.getPath().value, name].join("/"));
+        await apiAccess.deleteItems({
+            filePaths: [[...pathService.getPath().value, name].join("/")]
+        });
         emits("changed");
     }
 }
@@ -139,10 +148,12 @@ async function del(){
                 </template>
             </div>
         </div>
-        <div class="dots" @click="dotsClicked">
+        <div v-if="props.allowChanges" class="dots" @click="dotsClicked">
             &#8230;
             <div class="context-menu" :class="{active: showDropdown}" @mousedown="stopEvent"> 
                 <div class="menu-item" @click="rename">Rename</div>
+                <div class="menu-item" @click="copy(true)">Move</div>
+                <div class="menu-item" @click="copy(false)">Copy</div>
                 <div class="menu-item" @click="del">Delete</div>
             </div>
         </div>
