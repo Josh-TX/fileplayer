@@ -96,7 +96,8 @@ async function rename(){
 }
 
 async function copy(isMove: boolean){
-    modalService.startMove(pathService.getPath().value, [[...pathService.getPath().value, computedName.value].join("/")], isMove);
+    var folderCount = props.folderInfo != null ? 1 : 0;
+    modalService.startMove(pathService.getPath().value, [[...pathService.getPath().value, computedName.value].join("/")], folderCount, isMove);
 }
 
 

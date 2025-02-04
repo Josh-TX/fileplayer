@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, shallowRef, watch } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import { modalService } from '../services/ModalService'
 import { apiAccess } from '../services/ApiAccess'
-import type { FolderInfo } from '@/models/models';
+import type { FolderInfo, MediaInfo } from '@/models/models';
 import Tile from './Tile.vue';
 
 var folderInfos = shallowRef<FolderInfo[]>([]);
+var mediaInfos = shallowRef<MediaInfo[]>([]);
 var crumbs = ref<string[]>([]);
 function close(){
     modalService.isModalOpen.value = false;
@@ -25,8 +26,10 @@ async function load() {
     if (!modalService.isNewFolder.value){
         var pathString = modalService.currentPath.value.join("/");
         var result = await apiAccess.getDirContents(pathString);
-        folderInfos.value = result.folderInfos
+        folderInfos.value = result.folderInfos;
+        mediaInfos.value = result.mediaInfos;
         folderInfos.value.sort((z1, z2) => z1.folderName.localeCompare(z2.folderName))
+        mediaInfos.value.sort((z1, z2) => z1.fileName.localeCompare(z2.fileName))
     } else {
         folderInfos.value = [];
     }
@@ -47,13 +50,25 @@ function newFolder(){
     }
 }
 
+const title = computed(() => {
+    var folderCount = modalService.folderCount.value;
+    var fileCount = modalService.files.value.length - folderCount;
+    var action = modalService.isMove.value ? 'Move ' : 'Copy ';
+    var msg = action + (fileCount == 1 ? "1 file" : fileCount + " files");
+    if (folderCount > 0){
+        var msg = fileCount == 0 ? action : msg + " and ";
+        msg += folderCount == 1 ? "1 folder" : folderCount + " folders";
+    }
+    return msg;
+})
+
 </script>
 
 <template>
     <div class="modal-overlay" v-if="isModalOpen">
         <div class="modal-container">
             <div class="modal">
-                <h2 style="margin: 0 0 4px 0;">{{ modalService.isMove.value ? 'Move' : 'Copy '}} {{modalService.files.value.length}} File{{ modalService.files.value.length != 1 ? 's' : ''}}</h2>
+                <h2 style="margin: 0 0 4px 0;">{{ title }}</h2>
                 <div><small>to</small></div>
 
                 <!-- I copy pasted breadcrumb component code since the other component is too coupled to navigation-->
@@ -76,16 +91,19 @@ function newFolder(){
                     <div v-for="folderInfo of folderInfos" style="margin: 5px 0;">
                         <Tile :folderInfo="folderInfo" @click="handleFolderClick(folderInfo)"></Tile>
                     </div>
+                    <div v-for="mediaInfo of mediaInfos" style="margin: 5px 0;">
+                        <Tile :mediaInfo="mediaInfo"></Tile>
+                    </div>
                     <div v-if="!folderInfos.length" style="text-align: center; margin-top: 10vh;;">
-                        <span v-if="!modalService.isNewFolder">folder has no subfolders</span>
-                        <span v-if="modalService.isNewFolder">(new folder)</span>
+                        <span v-if="!modalService.isNewFolder.value">folder has no subfolders</span>
+                        <span v-if="modalService.isNewFolder.value">(new folder)</span>
                     </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-top: 6px;">
                     <button @click="newFolder">new folder</button>
                     <div>
                         <button @click="close" style="margin-right: 8px;">Cancel</button>
-                        <button @click="modalService.save()">{{ modalService.isMove.value ? 'Move' : 'Copy '}}</button>
+                        <button @click="modalService.save()" :disabled="modalService.isSaving.value">{{ modalService.isMove.value ? 'Move' : 'Copy '}}</button>
                     </div>
                 </div>
             </div>
@@ -125,8 +143,8 @@ function newFolder(){
 
 .modal {
     width: 100%;
-    background: #333;
-    border: 1px solid #666;
+    background: var(--bg-default);
+    border: 1px solid var(--dropdown-border);
     padding: 8px 16px 16px 16px;
     box-shadow: 4px 4px 16px 2px rgba(0, 0, 0, 0.5);
 }

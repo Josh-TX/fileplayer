@@ -170,8 +170,8 @@ watch(url, (newVal, oldVal) => {
 }
 
 .modal {
-    background: #333;
-    border: 1px solid #666;
+    background: var(--bg-default);
+    border: 1px solid var(--dropdown-border);
     padding: 8px 16px 16px 16px;
     box-shadow: 4px 4px 16px 2px rgba(0, 0, 0, 0.5);
 }

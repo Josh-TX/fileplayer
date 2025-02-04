@@ -171,7 +171,7 @@ function bulkCopy(isMove: boolean){
     var path = pathService.getPath().value;
     var folderPaths = selectedFolderInfos.value.map(z => [...path, z.folderName].join("/"));
     var mediaPaths = selectedMediaInfos.value.map(z => [...path, z.fileName].join("/"));
-    modalService.startMove(path, folderPaths.concat(mediaPaths), isMove);
+    modalService.startMove(path, folderPaths.concat(mediaPaths), folderPaths.length, isMove);
     stopBulkEdit();
 }
 
@@ -181,7 +181,10 @@ async function bulkDelete(){
     var mediaPaths = selectedMediaInfos.value.map(z => [...path, z.fileName].join("/"));
     var msg = mediaPaths.length == 1 ? "delete 1 file" : "delete " + mediaPaths.length + " files";
     if (folderPaths.length > 0){
-        msg += folderPaths.length == 1 ? " and 1 folder?" : "and " + folderPaths.length + " folders?";
+        var msg = mediaPaths.length == 0 ? "delete " : msg + " and ";
+        msg += folderPaths.length == 1 ? "1 folder?" : folderPaths.length + " folders?";
+    } else {
+        msg += "?"
     }
     if (confirm(msg)){
         await apiAccess.deleteItems({
