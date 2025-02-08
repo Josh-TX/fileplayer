@@ -9,12 +9,14 @@ class MediaService{
     private _lastProgress: number | null = null;
     private _lastUpdateTime: number | null = null;
     private _lastPlaybackRate: number = 1;
+    private _staticPlaybackRate: number | null = null;
     constructor(){
         setInterval(() => {
             if (this._path){
                 var el = <HTMLVideoElement>document.getElementById('media');
                 if (el){
-                    if (el.playbackRate != this._lastPlaybackRate){
+                    if (el.playbackRate != this._lastPlaybackRate && this._staticPlaybackRate == null){
+                        //only update the settings when the path does NOT have a static playbackRate
                         settingsService.updatePlaybackSpeed(el.playbackRate);
                         this._lastPlaybackRate = el.playbackRate
                     }
@@ -67,14 +69,19 @@ class MediaService{
 
     setup(path: string, progress: number | null){
         this._path = path;
+        this._staticPlaybackRate = this.extractStaticSpeed(path);
         var el = <HTMLVideoElement>document.getElementById('media');
         if (!el){
             throw "couldn't find media element";
         }
-        settingsService.getSettingsAsync().then(z => {
-            el.playbackRate = z.playbackSpeed
-            this._lastPlaybackRate = z.playbackSpeed;
-        });
+        if (this._staticPlaybackRate != null){
+            el.playbackRate = this._staticPlaybackRate
+        } else {
+            settingsService.getSettingsAsync().then(z => {
+                el.playbackRate = z.playbackSpeed
+                this._lastPlaybackRate = z.playbackSpeed;
+            });
+        }
         el.addEventListener('play', () => {
             if (this.isSafariMobile()){
                 //might need to do something here
@@ -100,6 +107,18 @@ class MediaService{
                 });
             }
         }
+    }
+
+    private extractStaticSpeed(path: string): number | null{
+        const matches = path.match(/\[(\d{1,2}(\.\d+)?)x\]/gi);//find all matches of something like [1.5x] or [2x]
+        if (!matches || !matches.length) {
+            console.log()
+            return null;
+        }
+        const lastMatch = matches[matches.length - 1];
+        const numberStr = lastMatch.match(/\[(\d{1,2}(\.\d+)?)x\]/i)![1];
+        var num = parseFloat(numberStr);
+        return num;
     }
 
     private isSafariMobile() {

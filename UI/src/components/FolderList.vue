@@ -49,6 +49,7 @@ var isBulkEdit = ref<boolean>(false);
 var isFilter = ref<boolean>(false);
 var filterText = ref<string>("");
 var sortBy = ref<string>("name");
+var filterChangedTimeout: number | undefined;
 
 watch(pathService.getPath(), (newVal, oldVal) => {
     load();
@@ -65,6 +66,7 @@ async function load() {
         folderInfos.value = result.folderInfos
         mediaInfos.value = result.mediaInfos
         sort();
+        updateFilter();
         if (result.mediaInfos.some(z => z.duration == null)) {
             var durationsResponse = await apiAccess.getDurations(pathString);
             if (pathString != pathService.getPathString()){
@@ -79,8 +81,8 @@ async function load() {
                 return {...mediaInfo}
             });
             mediaInfos.value = updatedMediaInfos
+            updateFilter();
         }
-        updateFilter();
     }
 }
 load();
@@ -196,6 +198,21 @@ async function bulkDelete(){
 
 function toggleIsFilter(){
     isFilter.value = !isFilter.value;
+    setTimeout(() => {
+        var el = <HTMLInputElement>document.getElementById("filter-input");
+        if (el){
+            el.focus();
+            el.select();
+        }
+    });
+    updateFilter();
+}
+
+function filterChanged(){
+    clearTimeout(filterChangedTimeout);
+    filterChangedTimeout = setTimeout(() => {
+        updateFilter();
+    }, 150)
 }
 
 function updateFilter(){
@@ -233,7 +250,7 @@ function refresh(){
             <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
         </div>
         <div v-if="isFilter" style="display: flex; justify-content: end; padding: 0 8px 4px 0;">
-            <input v-model="filterText" @input="updateFilter">
+            <input id="filter-input" v-model="filterText" @input="filterChanged()">
         </div>
         <div class="dir-content-grid">
             <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">

@@ -146,7 +146,7 @@ public class FileInfoService
     private void TimerCallback(object? state)
     {
         _shortDebounceTimer!.Change(Timeout.Infinite, Timeout.Infinite);
-        _longTimer!.Dispose();
+        _longTimer?.Dispose(); //I was getting errors without null checking. Not sure how though
         _longTimer = null;
         Save();
     }
