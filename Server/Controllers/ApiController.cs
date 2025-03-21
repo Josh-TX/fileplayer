@@ -301,6 +301,7 @@ namespace FilePlayer.Controllers
                     return BadRequest($"Destination file {newFileName} already exists");
                 }
             }
+            Directory.CreateDirectory(Path.Combine(_dataFolderPath, request.DestinationDir));
             foreach (var file in request.FilePaths)
             {
                 var oldFilePath = Path.Combine(_dataFolderPath, file);

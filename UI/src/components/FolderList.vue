@@ -8,6 +8,7 @@ import type { FolderInfo, MediaInfo } from '@/models/models';
 import { settingsService } from '@/services/SettingsService';
 import UploadFileModal from './UploadFileModal.vue';
 import UploadFromUrl from './UploadUrlModal.vue'
+import BreadCrumbs from './BreadCrumbs.vue';
 import Tile from './Tile.vue';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
@@ -119,6 +120,7 @@ function bodyClickHandler(){
 }
 onMounted(() => {
     document.body.addEventListener("click", bodyClickHandler);
+    document.title = "Fileplayer";
 })
 onUnmounted(() => {
     document.body.removeEventListener("click", bodyClickHandler);
@@ -235,23 +237,33 @@ function refresh(){
 </script>
 
 <template>
-    <div style="position: relative;">
-        <div class="sort-btn-container" @click="stopPropogate">
-            <button class="btn" @click="toggleIsFilter" style="margin-right: 4px;">filter</button>
-            <button class="btn" @click="showDropdown = !showDropdown">
-                sort by
-                <div class="context-menu checkable" :class="{active: showDropdown}">
-                    <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
-                    <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
-                    <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
-                    <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
-                </div>
-            </button>
-            <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
+    <div class="top-section-grid">
+        <div style="grid-area: breadcrumbs; min-width: 0;">
+            <BreadCrumbs></BreadCrumbs>
         </div>
-        <div v-if="isFilter" style="display: flex; justify-content: end; padding: 0 8px 4px 0;">
+        <div style="grid-area: filtersort;">
+            <div style="position: relative; display: flex; justify-content: end;" @click="stopPropogate">
+                <button class="btn" @click="toggleIsFilter">filter</button>
+                <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
+                    sort by
+                    <div class="context-menu checkable" :class="{active: showDropdown}">
+                        <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
+                        <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
+                        <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
+                        <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
+                    </div>
+                </button>
+                <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
+            </div>
+        </div>
+        <div v-if="isFilter" class="text-muted" style="grid-area: filterCount; margin-left: 8px;">
+            <span v-if="filterText">filtered to {{  filteredFolderInfos.length + filteredMediaInfos.length}} of {{ folderInfos.length + mediaInfos.length}}</span>
+        </div>
+        <div v-if="isFilter" style="grid-area: filterInput; margin-bottom: 6px; margin-right: 8px;">
             <input id="filter-input" v-model="filterText" @input="filterChanged()">
         </div>
+    </div>
+    <div style="position: relative;">
         <div class="dir-content-grid">
             <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
                 <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh"></Tile>
@@ -260,7 +272,7 @@ function refresh(){
                 <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh"></Tile>
             </div>
         </div>
-        <div v-if="!isBulkEdit" style="display: flex; justify-content: end; gap: 12px;">
+        <div v-if="!isBulkEdit" style="display: flex; justify-content: end; gap: 12px; padding-bottom: 16px;">
             <button @click="newFolder">New Folder</button>
             <button @click="startBulkEdit">Bulk Edit</button>
             <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
@@ -272,7 +284,7 @@ function refresh(){
                 <h3 style="margin: 8px 0 4px 8px;">Bulk Edit Mode ({{ (selectedFolderInfos.length + selectedMediaInfos.length) + '/' + (filteredFolderInfos.length + filteredMediaInfos.length) }})</h3>
                 <div style="padding: 8px 8px 0 0;"><button @click="stopBulkEdit">Cancel</button></div>
             </div>
-            <div style="margin-left: 8px">
+            <div style="margin-left: 8px;">
                 <button @click="toggleSelectAll">Toggle Select All</button>
                 <button @click="bulkCopy(true)" style="margin-left: 40px;">Move</button>
                 <button @click="bulkCopy(false)" style="margin-left: 8px;">Copy</button>
@@ -297,18 +309,13 @@ function refresh(){
     --tile-bg: var(--bulk-select-color)
 }
 
-.sort-btn-container{
-    position: absolute;
-    bottom: 100%;
-    right: 8px;
-}
 
 .btn{
+    background: var(--bg-default);
     cursor: pointer;
     outline: none;
     border: none;
     color: var(--sort-btn-color);
-    background: none;
     padding: 4px 8px;
     border-radius: 3px;;
     margin-bottom: 2px;
@@ -316,18 +323,6 @@ function refresh(){
 .btn:hover{
     color: var(--sort-btn-hover-color);
     background: var(--sort-btn-hover-bg);
-}
-.sort-dropdown{
-    padding: 4px;
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    border: 1px solid #555;
-    background-color: #333;;
-}
-.sort-dropdown.show{
-    display: block;
 }
 
 .dir-content-grid{
@@ -345,5 +340,28 @@ function refresh(){
         max-width: 1600px;
     }
 }
+
+.top-section-grid{
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "breadcrumbs breadcrumbs"
+            ". filtersort"
+            "filterCount filterInput";
+    }
+
+@media (min-width: 1200px) {
+    .top-section-grid{
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "breadcrumbs filtersort"
+            "filterCount filterInput";
+    }
+
+}
+
 
 </style>

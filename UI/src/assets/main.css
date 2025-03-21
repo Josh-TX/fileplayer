@@ -142,10 +142,13 @@ body {
 }
 
 .breadcrumb {
-    padding: 0;
+    padding: 0 0 0 8px;
     margin: 0;
     list-style: none;
     display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+
 
     font-size: 24px;
     font-weight: semibold;
@@ -153,6 +156,7 @@ body {
 
 .breadcrumb-item {
     margin-right: 5px;
+    white-space: nowrap;
 }
 
 .breadcrumb-item a {

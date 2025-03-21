@@ -20,7 +20,7 @@ public class DownloadService
     public DownloadService()
     {
 #if DEBUG
-        DownloadBinaries();
+        DownloadBinaries().Wait();
 #endif
     }
 

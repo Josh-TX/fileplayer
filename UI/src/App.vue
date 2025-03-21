@@ -10,7 +10,6 @@ import FolderSelectModal from './components/FolderSelectModal.vue'
 
 <template>
     <div style="display: flex; flex-direction: column; height: 100%;">
-        <BreadCrumbs></BreadCrumbs>
         <FolderList v-if="!pathService.isFile().value"></FolderList>
         <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
     </div>

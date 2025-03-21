@@ -32,7 +32,14 @@ async function load() {
         mediaInfos.value.sort((z1, z2) => z1.fileName.localeCompare(z2.fileName))
     } else {
         folderInfos.value = [];
+        mediaInfos.value = [];
     }
+    setTimeout(() => {
+        var el = document.querySelector(".modal .breadcrumb");
+        if (el){
+            el.scrollLeft = el.scrollWidth - el.clientWidth;
+        }
+    })
 }
 
 function handleFolderClick(folderInfo: FolderInfo){

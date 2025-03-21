@@ -4,6 +4,7 @@ import { mediaService } from '@/services/MediaService';
 import { onMounted, ref, shallowRef, watch } from 'vue';
 import type { MediaInfo } from '@/models/models';
 import { apiAccess } from '@/services/ApiAccess';
+import BreadCrumbs from './BreadCrumbs.vue';
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 var src = ref<string | null>(null)
@@ -22,6 +23,7 @@ if (!mediaInfo.value){
     apiAccess.getMediaInfo(pathService.getPathString()).then(z => {
         mediaInfo.value = z
         if (mounted){
+            document.title = mediaInfo.value.fileName;
             mediaService.setup(pathService.getPathString(), mediaInfo.value.progress)
         }
     });
@@ -29,6 +31,7 @@ if (!mediaInfo.value){
 onMounted(() => {
     mounted = true;
     if (mediaInfo.value){
+        document.title = mediaInfo.value.fileName;
         mediaService.setup(pathService.getPathString(), mediaInfo.value.progress)
     }
 })
@@ -36,6 +39,7 @@ onMounted(() => {
 </script>
 
 <template>
+    <BreadCrumbs></BreadCrumbs>
     <div class="media-container">
         <video v-if="src" id="media" controls>
             <source :src="src!">

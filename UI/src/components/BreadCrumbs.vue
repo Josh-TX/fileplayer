@@ -9,6 +9,10 @@ watch(pathService.getPath(), update);
 update();
 function update() {
     crumbs.value = ["root", ...pathService.getPathString().split("/").filter(z => !!z)]
+    setTimeout(() => {
+        var el = document.getElementById("main-breadcrumb")!;
+        el.scrollLeft = el.scrollWidth - el.clientWidth;
+    })
 }
 
 function navigate(index: number) {
@@ -18,8 +22,8 @@ function navigate(index: number) {
 </script>
 
 <template>
-    <nav aria-label="breadcrumb" style="padding-left: 8px;">
-        <ol class="breadcrumb">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb" id="main-breadcrumb">
             <li v-for="(item, index) in crumbs" :key="index" class="breadcrumb-item">
                 <!-- If it's not the last item, make it a clickable link -->
                 <template v-if="index < crumbs.length - 1">

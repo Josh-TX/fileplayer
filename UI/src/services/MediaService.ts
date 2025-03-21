@@ -112,7 +112,6 @@ class MediaService{
     private extractStaticSpeed(path: string): number | null{
         const matches = path.match(/\[(\d{1,2}(\.\d+)?)x\]/gi);//find all matches of something like [1.5x] or [2x]
         if (!matches || !matches.length) {
-            console.log()
             return null;
         }
         const lastMatch = matches[matches.length - 1];
