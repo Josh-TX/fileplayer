@@ -28,7 +28,7 @@ class MediaService{
                         return;
                     }
                     if (this._lastProgress == 1 && currentProgress == 0){
-                        return; //we loaded the player already finished and haven't played yet
+                        return; //we loaded the player positioned at the end and haven't played yet
                     }
                     if (this._lastProgress == currentProgress){
                         return; //progress is unchanged
@@ -45,9 +45,14 @@ class MediaService{
                         this.updateProgress(el); //first update this session
                         return;
                     }
-                    var elapsed = (currentProgress - this._lastProgress) * el.duration;
-                    if (elapsed > 4){
-                        this.updateProgress(el); //video is over 4 seconds ahead of the last update
+                    var videoSecondsElapsed = (currentProgress - this._lastProgress) * el.duration;
+                    if (videoSecondsElapsed > 8){
+                        this.updateProgress(el); //video is over 8 seconds ahead of the last update
+                        return;
+                    }
+                    var timeSinceLastUpdate = ((new Date().getTime() - this._lastUpdateTime)) / 1000;
+                    if (timeSinceLastUpdate > 4){
+                        this.updateProgress(el); //It's been 4 seconds since the last update
                         return;
                     }
                 } else {

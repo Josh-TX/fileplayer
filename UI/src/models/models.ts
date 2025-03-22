@@ -34,6 +34,7 @@ export type Settings = {
     sortDesc: boolean;
     useMDate: boolean;
     preferredHeight: number | null;
+    compatCodec: boolean;
 }
 
 export type CopyItemsRequest = {
@@ -61,4 +62,5 @@ export type UploadFromUrlRequest = {
     preferredHeight: number | null;
     overrideName: string;
     useMDate: boolean;
+    compatCodec: boolean;
 }

@@ -8,7 +8,8 @@ class SettingsService {
         playbackSpeed: 1,
         sortDesc: true,
         preferredHeight: 720,
-        useMDate: false
+        useMDate: false,
+        compatCodec: false
     }
     private _settingsPromise: Promise<Settings>;
 
@@ -48,6 +49,13 @@ class SettingsService {
     updateUseMDate(useMDate: boolean){
         if (this._settings.useMDate != useMDate){            
             this._settings.useMDate = useMDate;
+            apiAccess.updateSettings(this._settings);
+        }
+    }
+
+    updateCompatCodec(compatCodec: boolean){
+        if (this._settings.compatCodec != compatCodec){            
+            this._settings.compatCodec = compatCodec;
             apiAccess.updateSettings(this._settings);
         }
     }

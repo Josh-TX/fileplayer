@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, watch } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import FileDrop from './FileDrop.vue';
 import { pathService } from '@/services/PathService';
 import { apiAccess } from '@/services/ApiAccess';
@@ -13,12 +13,14 @@ const url = ref("");
 const format = ref<number | null>(720);
 const infoMsg = ref<string>("no info loaded");
 const useMDate = ref(false);
+const compatCodec = ref(false);
 const overrideName = ref("");
 const urlInfo = shallowRef<UrlInfo | null>(null);
-const displayPath = pathService.getPathString() || "root";
+const displayPath = computed(() => pathService.getPathString() || "root");
 settingsService.getSettingsAsync().then(z => {
     format.value = z.preferredHeight
     useMDate.value = z.useMDate
+    compatCodec.value = z.compatCodec
 });
 
 async function upload() {
@@ -31,7 +33,8 @@ async function upload() {
         preferredHeight: format.value,
         url: url.value,
         overrideName: overrideName.value,
-        useMDate: useMDate.value
+        useMDate: useMDate.value,
+        compatCodec: compatCodec.value,
     }).then(() => {
         setTimeout(() => {
             emits("uploaded");
@@ -84,7 +87,9 @@ watch(format, (newVal, oldVal) => {
 watch(useMDate, (newVal, oldVal) => {
     settingsService.updateUseMDate(newVal)
 });
-
+watch(compatCodec, (newVal, oldVal) => {
+    settingsService.updateCompatCodec(newVal)
+});
 watch(url, (newVal, oldVal) => {
     infoMsg.value = "no info loaded";
     urlInfo.value = null;
@@ -117,10 +122,15 @@ watch(url, (newVal, oldVal) => {
                     </div>
                     <span>Override Filename</span>
                     <input placeholder="(don't override)" style="padding: 2px;" v-model="overrideName">
+                    <span>Video Codec</span>
+                    <div>
+                        <label style="margin-right: 16px;"><input type="radio" name="codec"  v-model="compatCodec" :value="false"> Best Compression (often VP9)</label>
+                        <label><input type="radio" name="codec" v-model="compatCodec" :value="true"> iOS compatible (often AVC)</label>
+                    </div>
                 </div>
                 <div style="margin-top: 4px">
-                    <input v-model="useMDate" type="checkbox">
-                    Set file date to publish date (if available)
+                    <input id="date-checkbox" v-model="useMDate" type="checkbox">
+                    <label for="date-checkbox">Set file date to publish date (if available)</label>
                 </div>
                 <div class="info">
                     <div v-if="!urlInfo" class="text-muted" style="padding-top: 30px; text-align: center;">{{ infoMsg }}</div>

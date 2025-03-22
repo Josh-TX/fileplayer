@@ -9,6 +9,7 @@ public class Settings
     public bool SortDesc { get; set; }
     public int? PreferredHeight { get; set; }
     public bool UseMDate { get; set; }
+    public bool CompatCodec { get; set; }
 }
 
 public class SettingsService
@@ -52,7 +53,7 @@ public class SettingsService
             }
             catch (Exception)
             {
-                Console.WriteLine("error reading duration.txt");
+                Console.WriteLine("error reading settings.txt");
             }
         }
         return new Settings
@@ -61,7 +62,8 @@ public class SettingsService
             SortBy = "name",
             SortDesc = true,
             PreferredHeight = 720,
-            UseMDate = false
+            UseMDate = false,
+            CompatCodec = false
         };
     }
 }

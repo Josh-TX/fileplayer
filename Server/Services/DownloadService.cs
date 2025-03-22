@@ -54,7 +54,7 @@ public class DownloadService
     /// <param name="url">The url to download mediafrom</param>
     /// <param name="preferredHeight">When null, download just audio</param>
     /// <param name="overrideName">Output file name (should not include file extension)</param>
-    public async void StartDownload(string outputPath, string url, int? preferredHeight, string? overrideName, bool useMDate)
+    public async void StartDownload(string outputPath, string url, int? preferredHeight, string? overrideName, bool useMDate, bool compatCodec)
     {
         //intentionally async void.
 
@@ -76,7 +76,16 @@ public class DownloadService
         RunResult<string> result;
         if (preferredHeight != null)
         {
-            options.Format = $"bv*[height<={preferredHeight}]+ba / b[height<={preferredHeight}] / wv*+ba / w";
+            var baseFormat = $"bv*[height<={preferredHeight}]+ba / b[height<={preferredHeight}] / wv*+ba / w";
+            options.Format = baseFormat;
+            if (compatCodec)
+            {
+                options.Format = $"bv*[vcodec^=avc][height<={preferredHeight}]+ba[acodec^=mp4a] / " +  // Best split-track AVC within height limit
+                 $"b[vcodec^=avc][height<={preferredHeight}] / " +  // Best combined-track AVC within height limit
+                 $"bv*[vcodec^=avc]+ba[acodec^=mp4a] / " +  // Any split-track AVC (if no height-compliant one exists)
+                 $"w[vcodec^=avc] / " +  // Any combined-track AVC (if no height-compliant one exists)
+                 baseFormat; // no AVC video available at all, so fall back on non-AVC
+            }
             result = await ytdl.RunVideoDownload(
                 url,
                 mergeFormat: DownloadMergeFormat.Mp4,

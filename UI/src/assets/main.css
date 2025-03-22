@@ -142,7 +142,7 @@ body {
 }
 
 .breadcrumb {
-    padding: 0 0 0 8px;
+    padding: 2px 0 5px 8px;
     margin: 0;
     list-style: none;
     display: flex;

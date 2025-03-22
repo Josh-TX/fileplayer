@@ -351,7 +351,7 @@ namespace FilePlayer.Controllers
             {
                 return NotFound(new { Message = "Directory not found." });
             }
-            _downloadService.StartDownload(fullDirectory, request.Url, request.PreferredHeight, request.OverrideName, request.UseMDate);
+            _downloadService.StartDownload(fullDirectory, request.Url, request.PreferredHeight, request.OverrideName, request.UseMDate, request.CompatCodec);
             return Ok();
         }
 
@@ -443,6 +443,7 @@ namespace FilePlayer.Controllers
         public int? PreferredHeight { get; set; }
         public string? OverrideName { get; set; }
         public bool UseMDate { get; set; }
+        public bool CompatCodec { get; set; }
     }
 
     public class CopyItemsRequest

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import FileDrop from './FileDrop.vue';
 import { pathService } from '@/services/PathService';
 import { apiAccess } from '@/services/ApiAccess';
@@ -7,7 +7,7 @@ import { apiAccess } from '@/services/ApiAccess';
 var emits = defineEmits(['uploaded'])
 const open = ref(false)
 const files = shallowRef<File[]>([])
-const displayPath = pathService.getPathString() || "root";
+const displayPath = computed(() => pathService.getPathString() || "root");
 function filesAdded(addedFiles: File[]) {
     files.value = addedFiles;
 }
