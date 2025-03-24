@@ -289,32 +289,136 @@ namespace FilePlayer.Controllers
         [Route("copy-items")]
         public IActionResult CopyItems([FromBody] CopyItemsRequest request)
         {
-            if (request.FilePaths.Any(filepath => request.DestinationDir.StartsWith(filepath)))
+            if (request.FilePaths.Any(filepath => (request.DestinationDir + "/").StartsWith(filepath + "/")))
             {
                 return BadRequest("DestinationDir is a subdirectory of a dir being moved");
             }
+
+            //first validate the copy/move
             foreach (var file in request.FilePaths)
             {
-                var newFileName = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
-                if (System.IO.File.Exists(newFileName))
+                var oldPath = Path.Combine(_dataFolderPath, file);
+                var newPath = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
+                if (System.IO.File.Exists(oldPath))
                 {
-                    return BadRequest($"Destination file {newFileName} already exists");
+                    if (System.IO.File.Exists(newPath))
+                    {
+                        return BadRequest($"Destination file {newPath} already exists");
+                    }
+                }
+                else if (Directory.Exists(oldPath))
+                {
+                    var errorMessage = CanCopyOrMoveDirectory(oldPath, newPath);
+                    if (errorMessage != null)
+                    {
+                        return BadRequest(errorMessage);
+                    }
+                }
+                else
+                {
+                    return BadRequest($"No file or directory {oldPath}");
                 }
             }
+
+            //create DestinationDir if needed
             Directory.CreateDirectory(Path.Combine(_dataFolderPath, request.DestinationDir));
+
+            //actually copy/move the files & directories
             foreach (var file in request.FilePaths)
             {
-                var oldFilePath = Path.Combine(_dataFolderPath, file);
-                var newFilePath = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
-                if (request.IsMove)
+                var oldPath = Path.Combine(_dataFolderPath, file);
+                var newPath = Path.Combine(_dataFolderPath, request.DestinationDir, Path.GetFileName(file));
+                if (System.IO.File.Exists(oldPath))
                 {
-                    System.IO.File.Move(oldFilePath, newFilePath);
-                } else
+                    if (request.IsMove)
+                    {
+                        System.IO.File.Move(oldPath, newPath);
+                    }
+                    else
+                    {
+                        System.IO.File.Copy(oldPath, newPath);
+                    }
+                }
+                else if (Directory.Exists(oldPath))
                 {
-                    System.IO.File.Copy(oldFilePath, newFilePath);
+                    CopyDirectory(oldPath, newPath, request.IsMove);
+                    if (request.IsMove)
+                    {
+                        Directory.Delete(oldPath);
+                    }
                 }
             }
             return Ok();
+        }
+
+        /// <summary>
+        /// Recursively checks if oldPath (a directory) can be moved OR merged with (newPath). returns null if directories can be moved, otherwise returns a message explaining why it can't be moved
+        /// </summary>
+        private string? CanCopyOrMoveDirectory(string oldPath, string newPath)
+        {
+            if (!Directory.Exists(newPath))
+            {
+                return null;//the directory doesn't exist yet, so we're good
+            }
+            var oldPathfiles = Directory.GetFiles(oldPath);
+            foreach (var oldPathfile in oldPathfiles)
+            {
+                string newPathFile = Path.Combine(newPath, Path.GetFileName(oldPathfile));
+                if (System.IO.File.Exists(newPathFile))
+                {
+                    return "Destination file " + newPathFile + " already exists";
+                }
+                if (Directory.Exists(newPathFile))
+                {
+                    return "Destination directory " + newPathFile + " already exists";
+                }
+            }
+            var oldPathDirectories = Directory.GetDirectories(oldPath);
+            foreach (var oldPathDirectory in oldPathDirectories)
+            {
+                string newPathDirectory = Path.Combine(newPath, Path.GetFileName(oldPathDirectory));
+                if (System.IO.File.Exists(newPathDirectory))
+                {
+                    return "Destination file " + newPathDirectory + " already exists";
+                }
+                if (Directory.Exists(newPathDirectory))
+                {
+                    var result = CanCopyOrMoveDirectory(oldPathDirectory, newPathDirectory);
+                    if (result != null)
+                    {
+                        return result;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private void CopyDirectory(string oldPath, string newPath, bool isMove)
+        {
+            Directory.CreateDirectory(newPath);
+            var oldPathfiles = Directory.GetFiles(oldPath);
+            foreach (var oldPathfile in oldPathfiles)
+            {
+                string newPathFile = Path.Combine(newPath, Path.GetFileName(oldPathfile));
+                if (isMove)
+                {
+                    System.IO.File.Move(oldPathfile, newPathFile);
+                }
+                else
+                {
+                    System.IO.File.Copy(oldPathfile, newPathFile);
+                }
+            }
+            var oldPathDirectories = Directory.GetDirectories(oldPath);
+            foreach (var oldPathDirectory in oldPathDirectories)
+            {
+                string newPathDirectory = Path.Combine(newPath, Path.GetFileName(oldPathDirectory));
+                CopyDirectory(oldPathDirectory, newPathDirectory, isMove);
+                if (isMove)
+                {
+                    Directory.Delete(oldPathDirectory);
+                }
+            }
         }
 
         [HttpPost]

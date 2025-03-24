@@ -22,19 +22,19 @@ class ModalService {
         this.folderCount.value = folderCount;
     }
     async save(){
-        var currentPathStr = this.currentPath.value.join("/");
-        if (currentPathStr == this.initialPath.value.join("/")){
+        var destinationPathStr = this.currentPath.value.join("/");
+        if (destinationPathStr == this.initialPath.value.join("/")){
             alert("destination path is same as the current path");
             return;
         }
-        if (this.files.value.some(z => currentPathStr.startsWith(z))){
+        if (this.files.value.some(filePath => (destinationPathStr + "/").startsWith(filePath + "/"))){
             alert("cannot " + (this.isMove.value ? "move" : "copy") + " a folder to within itself");
             return;
         }
         this.isSaving.value = true;
         await apiAccess.copyItems({
             filePaths: this.files.value,
-            destinationDir: currentPathStr,
+            destinationDir: destinationPathStr,
             isMove: this.isMove.value
         });
         this.isSaving.value = false;
