@@ -10,6 +10,7 @@ public class Settings
     public int? PreferredHeight { get; set; }
     public bool UseMDate { get; set; }
     public bool CompatCodec { get; set; }
+    public bool useNative { get; set; }
 }
 
 public class SettingsService

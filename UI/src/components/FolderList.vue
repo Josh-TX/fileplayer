@@ -242,7 +242,7 @@ function refresh(){
             <BreadCrumbs></BreadCrumbs>
         </div>
         <div style="grid-area: filtersort;">
-            <div style="position: relative; display: flex; justify-content: end; margin-top: 4px;" @click="stopPropogate">
+            <div style="position: relative; display: flex; justify-content: end; margin-top: 2px;" @click="stopPropogate">
                 <button class="btn" @click="toggleIsFilter">filter</button>
                 <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
                     sort by

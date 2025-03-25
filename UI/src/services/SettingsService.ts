@@ -9,7 +9,8 @@ class SettingsService {
         sortDesc: true,
         preferredHeight: 720,
         useMDate: false,
-        compatCodec: false
+        compatCodec: false,
+        useNative: false
     }
     private _settingsPromise: Promise<Settings>;
 
@@ -56,6 +57,13 @@ class SettingsService {
     updateCompatCodec(compatCodec: boolean){
         if (this._settings.compatCodec != compatCodec){            
             this._settings.compatCodec = compatCodec;
+            apiAccess.updateSettings(this._settings);
+        }
+    }
+
+    updateUseNative(useNative: boolean){
+        if (this._settings.useNative != useNative){            
+            this._settings.useNative = useNative;
             apiAccess.updateSettings(this._settings);
         }
     }

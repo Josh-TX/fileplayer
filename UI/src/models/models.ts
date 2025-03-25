@@ -35,6 +35,7 @@ export type Settings = {
     useMDate: boolean;
     preferredHeight: number | null;
     compatCodec: boolean;
+    useNative: boolean;
 }
 
 export type CopyItemsRequest = {
