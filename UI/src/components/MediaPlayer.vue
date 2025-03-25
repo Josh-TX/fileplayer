@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { pathService } from '@/services/PathService';
 import { ProgressManager } from '@/classes/ProgressManager';
-import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, shallowRef, watch, nextTick } from 'vue';
 import type { MediaInfo } from '@/models/models';
 import { apiAccess } from '@/services/ApiAccess';
 import BreadCrumbs from './BreadCrumbs.vue';
@@ -14,11 +14,14 @@ var isNative = ref<boolean | null>(null);
 var showDropdown = ref<boolean>(false);
 var mediaInfo = shallowRef<MediaInfo | null>(pathService.getMediaInfo());
 var mounted = false;
+var setupRan = false;
 var videoJsManager: VideoJsManager | null = null;
 var progressManager: ProgressManager | null = null;
 settingsService.getSettingsAsync().then(z => {
     isNative.value = z.useNative
-    setup();
+    nextTick(() => {
+        setup();
+    })
 });
 
 watch(pathService.getPath(),(newVal, oldVal) => {
@@ -38,7 +41,7 @@ if (!mediaInfo.value){//if mediaInfo is null, we directly loaded into the MediaP
     });
 }
 watch(isNative, (newVal, oldVal) => {
-    if (newVal != null){
+    if (oldVal != null && newVal != null){ //if oldVal was null, this was probably triggered by loading the settings
         settingsService.updateUseNative(newVal)
     }
 });
@@ -57,16 +60,15 @@ onBeforeUnmount(() => {
     document.body.removeEventListener("click", bodyClickHandler);
 });
 function setup(){
-    if (!mediaInfo.value || !mounted || isNative.value == null){
+    if (!mediaInfo.value || !mounted || isNative.value == null || setupRan){
         return;
     }
+    setupRan = true;
     document.title = mediaInfo.value.fileName;
     var id: string;
     if (!isNative.value){
         id = "default-video"
-        setTimeout(() => {
-            videoJsManager = new VideoJsManager(id);
-        }, 50)
+        videoJsManager = new VideoJsManager(id);
     } else {
         id = "native-video"
     }
@@ -91,16 +93,16 @@ function changePlayer(newIsNative: boolean){
                 videoJsManager.dispose();
                 videoJsManager = null;
             }
-            setTimeout(() => {
+            nextTick(() => {
                 isNative.value = newIsNative;
                 progressManager = new ProgressManager(pathService.getPathString(), progress, "native-video");
-            }, 50)
+            });
         } else {
             isNative.value = newIsNative;
-            setTimeout(() => {
+            nextTick(() => {
                 videoJsManager = new VideoJsManager("default-video");
                 progressManager = new ProgressManager(pathService.getPathString(), progress, "default-video");
-            }, 50)
+            })
         }
     }
 }
@@ -116,7 +118,7 @@ function changePlayer(newIsNative: boolean){
             <div class="player-toggle" @click="stopPropogate">
                 <button class="btn" @click="showDropdown = !showDropdown" style="padding: 0 6px 8px; margin-bottom: -1px;">&#8230;</button>
                 <div class="context-menu checkable" :class="{active: showDropdown}">
-                    <div class="menu-item" @click="changePlayer(false)"><span v-if="!isNative">✓</span>Default Player</div>
+                    <div class="menu-item" @click="changePlayer(false)"><span v-if="!isNative">✓</span>VideoJS Player</div>
                     <div class="menu-item" @click="changePlayer(true)"><span v-if="isNative">✓</span>Native Player</div>
                 </div>
             </div>
