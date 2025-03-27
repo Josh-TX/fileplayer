@@ -223,6 +223,10 @@ video{
     animation: quickfadeOut 0.6s ease-in-out 1 forwards;
 }
 
+.no-click{
+    pointer-events: none;
+}
+
 @keyframes quickfadeOut {
     0% {
         opacity: 1;
