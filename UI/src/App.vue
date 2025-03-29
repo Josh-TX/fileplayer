@@ -5,7 +5,8 @@ import { pathService } from '@/services/PathService';
 import BreadCrumbs from './components/BreadCrumbs.vue';
 import MediaPlayer from './components/MediaPlayer.vue';
 import FolderSelectModal from './components/FolderSelectModal.vue'
-
+console.log("Made by Josh-TX")
+console.log("https://github.com/Josh-TX/fileplayer")
 </script>
 
 <template>

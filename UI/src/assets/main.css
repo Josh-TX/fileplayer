@@ -5,6 +5,7 @@
     --text-muted: #999;
     --text-primary: #3498db;
     --bg-default: #EEEEF6;
+    --border-default: #CCC;
     --text-link: #007FFF;
     --border-filedrop: #007FFF;
     --border-filedrop-active: #44AAFF;
@@ -36,6 +37,7 @@
         --text-muted: #ccc;
         --text-primary: #3498db;
         --bg-default: #333339;
+        --border-default: #444;
         --text-link: #4AB3F4;
         --border-filedrop: #41a0ff;
         --border-filedrop-active: #44AAFF;

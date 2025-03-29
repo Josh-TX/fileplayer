@@ -27,7 +27,13 @@ namespace FilePlayer.Controllers
 
         [HttpGet]
         [Route("dir-contents")]
-        public ActionResult<DirContentsResponse> GetDirContents([FromQuery] string path = "")
+        public ActionResult<DirContentsResponse> GetDirContents(
+            [FromQuery] string path = "",
+            [FromQuery] string filter = "",
+            [FromQuery] bool considerFolderContents = false,
+            [FromQuery] bool matchCase = false,
+            [FromQuery] bool typoTolerance = false,
+            [FromQuery] bool anyOrder = false)
         {
             if (path == "" && !Directory.Exists(_dataFolderPath))
             {
@@ -38,27 +44,33 @@ namespace FilePlayer.Controllers
             {
                 return NotFound(new { Message = "Directory not found." });
             }
-            var folderInfos = Directory.GetDirectories(fullDirectory).Select(directory =>
+            var folderFileInfos = Directory.GetDirectories(fullDirectory).Select(d => new FileInfo(d)).ToList();
+            var mediaFileInfos = Directory.GetFiles(fullDirectory).Select(f => new FileInfo(f)).ToList();
+            if (!string.IsNullOrEmpty(filter))
             {
-                var tuple = GetFolderSizeAndFileCount(directory);
+                var filterManager = new FilterManager(filter, considerFolderContents, matchCase, typoTolerance, anyOrder);
+                filterManager.ApplyFilter(folderFileInfos);
+                filterManager.ApplyFilter(mediaFileInfos);
+            }
+            var folderInfos = folderFileInfos.Select(fileInfo =>
+            {
+                var tuple = GetFolderSizeAndFileCount(fileInfo.FullName);
                 return new FolderInfo
                 {
-                    FolderName = Path.GetFileName(directory),
+                    FolderName = fileInfo.Name,
                     MediaFileCount = tuple.MediaFileCount,
                     MediaDiskSize = tuple.MediaDiskSize,
-                    ModifyDate = new FileInfo(directory).LastWriteTime,
+                    ModifyDate = fileInfo.LastWriteTime,
                 };
             }).ToList();
-            var fileNames = Directory.GetFiles(fullDirectory).Select(f => Path.GetFileName(f)).ToList();
-            var mediaInfos = fileNames.Select(filename =>
+            var mediaInfos = mediaFileInfos.Select(fileInfo =>
             {
-                var fileInfo = new FileInfo(Path.Combine(fullDirectory, filename));
                 var size = fileInfo.Length;
-                var fileId = FileIdHelper.GetId(filename, size);
+                var fileId = FileIdHelper.GetId(fileInfo.Name, size);
                 var info = _fileInfoService.GetInfoTuple(fileId);
                 return new MediaInfo
                 {
-                    FileName = filename,
+                    FileName = fileInfo.Name,
                     Duration = info?.Item2,
                     FileSize = size,
                     ModifyDate = fileInfo.LastWriteTime,

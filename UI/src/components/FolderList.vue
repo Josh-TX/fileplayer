@@ -48,9 +48,17 @@ var showDropdown = ref<boolean>(false);
 var sortDesc = ref<boolean>(true);
 var isBulkEdit = ref<boolean>(false);
 var isFilter = ref<boolean>(false);
+var isFilterLoading = ref<boolean>(false);
+var isLoading = ref<boolean>(false);
 var filterText = ref<string>("");
 var sortBy = ref<string>("name");
 var filterChangedTimeout: number | undefined;
+
+var isAdvancedFilter = ref<boolean>(false);
+var anyOrder = ref<boolean>(false);
+var typeTolerance = ref<boolean>(false);
+var folderContents = ref<boolean>(false);
+
 
 watch(pathService.getPath(), (newVal, oldVal) => {
     load();
@@ -60,6 +68,9 @@ modalService.registerOnRefresh(refresh);
 async function load() {
     if (!pathService.isFile().value) {
         var pathString = pathService.getPathString();
+        folderInfos.value = [];
+        mediaInfos.value = [];
+        isLoading.value = true;
         var result = await apiAccess.getDirContents(pathString);
         var settings = await settingsService.getSettingsAsync();
         sortBy.value = settings.sortBy;
@@ -67,26 +78,31 @@ async function load() {
         folderInfos.value = result.folderInfos
         mediaInfos.value = result.mediaInfos
         sort();
-        updateFilter();
         if (result.mediaInfos.some(z => z.duration == null)) {
-            var durationsResponse = await apiAccess.getDurations(pathString);
-            if (pathString != pathService.getPathString()){
-                //path must have changed
-                return;
-            }
-            var updatedMediaInfos = result.mediaInfos.map(mediaInfo => {
-                var foundDuration = durationsResponse.mediaDurations.find(z => z.fileName == mediaInfo.fileName);
-                if (foundDuration != null){
-                    mediaInfo.duration = foundDuration.duration;
-                }
-                return {...mediaInfo}
-            });
-            mediaInfos.value = updatedMediaInfos
-            updateFilter();
+            loadDurations(pathString);
         }
+        await updateFilter();
+        isLoading.value = false;
     }
 }
 load();
+
+async function loadDurations(pathString: string, ){
+    var durationsResponse = await apiAccess.getDurations(pathString);
+    if (pathString != pathService.getPathString()){
+        //path must have changed
+        return;
+    }
+    var updatedMediaInfos = mediaInfos.value.map(mediaInfo => {
+        var foundDuration = durationsResponse.mediaDurations.find(z => z.fileName == mediaInfo.fileName);
+        if (foundDuration != null){
+            mediaInfo.duration = foundDuration.duration;
+        }
+        return {...mediaInfo}
+    });
+    mediaInfos.value = updatedMediaInfos
+    updateFilter();
+}
 
 function changeSortBy(newSortBy: string){
     sortBy.value = newSortBy;
@@ -210,24 +226,43 @@ function toggleIsFilter(){
     updateFilter();
 }
 
-function filterChanged(){
-    clearTimeout(filterChangedTimeout);
-    filterChangedTimeout = setTimeout(() => {
-        updateFilter();
-    }, 150)
+function toggleIsAdvanced(){
+    isAdvancedFilter.value = !isAdvancedFilter.value;
+    updateFilter();
 }
 
-function updateFilter(){
+function filterChanged(){
+    clearTimeout(filterChangedTimeout);
+    if (filterText.value){
+        filterChangedTimeout = setTimeout(() => {
+            updateFilter();
+        }, isAdvancedFilter.value ? 500 : 150)
+        isFilterLoading.value = !!isAdvancedFilter.value;
+    } else {
+        updateFilter();
+    }
+}
+
+async function updateFilter(){
     if (isFilter.value){
-        var lower = filterText.value.toLowerCase();
-        filteredFolderInfos.value = folderInfos.value.filter(z => z.folderName.toLowerCase().includes(lower));
-        filteredMediaInfos.value = mediaInfos.value.filter(z => z.fileName.toLowerCase().includes(lower));
-        selectedFolderInfos.value = selectedFolderInfos.value.filter(z => z.folderName.toLowerCase().includes(lower));
-        selectedMediaInfos.value = selectedMediaInfos.value.filter(z => z.fileName.toLowerCase().includes(lower));
+        if (isAdvancedFilter.value && filterText.value){
+            isFilterLoading.value = true;
+            var result = await apiAccess.searchDirContents(pathService.getPathString(), filterText.value, folderContents.value, typeTolerance.value, anyOrder.value);
+            isFilterLoading.value = false;
+            filteredFolderInfos.value = result.folderInfos;
+            filteredMediaInfos.value = result.mediaInfos;
+        } else {
+            var lower = filterText.value.toLowerCase();
+            filteredFolderInfos.value = folderInfos.value.filter(z => z.folderName.toLowerCase().includes(lower));
+            filteredMediaInfos.value = mediaInfos.value.filter(z => z.fileName.toLowerCase().includes(lower));
+        }
+        selectedFolderInfos.value =  selectedFolderInfos.value.filter(z => filteredFolderInfos.value.some(zz => zz.folderName == z.folderName));
+        selectedMediaInfos.value = selectedMediaInfos.value.filter(z => filteredMediaInfos.value.some(zz => zz.fileName == z.fileName));
     } else {
         filteredFolderInfos.value = folderInfos.value
         filteredMediaInfos.value = mediaInfos.value
     }
+    isFilterLoading.value = false;
 }
 
 function refresh(){
@@ -242,29 +277,48 @@ function refresh(){
             <BreadCrumbs></BreadCrumbs>
         </div>
         <div style="grid-area: filtersort;">
-            <div style="position: relative; display: flex; justify-content: end; margin-top: 2px;" @click="stopPropogate">
+            <div style="position: relative; display: flex; justify-content: end; margin-top: 2px;">
                 <button class="btn" @click="toggleIsFilter">filter</button>
-                <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
-                    sort by
-                    <div class="context-menu checkable" :class="{active: showDropdown}">
-                        <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
-                        <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
-                        <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
-                        <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
-                    </div>
-                </button>
+                <div @click="stopPropogate">
+                    <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
+                        sort by
+                        <div class="context-menu checkable" :class="{active: showDropdown}">
+                            <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
+                            <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
+                            <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
+                            <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
+                        </div>
+                    </button>
+                </div>
                 <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
             </div>
         </div>
         <div v-if="isFilter" class="text-muted" style="grid-area: filterCount; margin-left: 8px;">
             <span v-if="filterText">filtered to {{  filteredFolderInfos.length + filteredMediaInfos.length}} of {{ folderInfos.length + mediaInfos.length}}</span>
         </div>
+        <div v-if="isFilter" class="text-muted" style="grid-area: advancedFilter; margin: 4px 8px; display: flex; flex-wrap: wrap; justify-content: end; gap: 12px;">
+            <template v-if="isAdvancedFilter">
+                <label style="white-space: nowrap;">
+                    <input type="checkbox" v-model="anyOrder" @change="filterChanged">
+                    match words in any order
+                </label>
+                <label style="white-space: nowrap;">
+                    <input type="checkbox" v-model="typeTolerance" @change="filterChanged">
+                    typo tolerance
+                </label>
+                <label style="white-space: nowrap;">
+                    <input type="checkbox" v-model="folderContents" @change="filterChanged">
+                    consider folder contents
+                </label>
+            </template>
+        </div>
         <div v-if="isFilter" style="grid-area: filterInput; margin-bottom: 6px; margin-right: 8px;">
-            <input id="filter-input" v-model="filterText" @input="filterChanged()">
+            <input id="filter-input" placeholder="enter filter text" v-model="filterText" @input="filterChanged()" style="margin-right: 4px" autocomplete="off">
+            <button @click="toggleIsAdvanced">advanced</button>
         </div>
     </div>
-    <div style="position: relative;">
-        <div class="dir-content-grid">
+    <div>
+        <div class="dir-content-grid" v-if="!isLoading && !isFilterLoading">
             <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
                 <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh"></Tile>
             </div>
@@ -272,11 +326,19 @@ function refresh(){
                 <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh"></Tile>
             </div>
         </div>
-        <div v-if="!isBulkEdit" style="display: flex; justify-content: end; gap: 12px; padding-bottom: 16px;">
+        <div class="center-message fade-in" v-if="isLoading || isFilterLoading">
+            <h2>loading</h2>
+        </div>
+        <div class="center-message" v-if="!isLoading && !isFilterLoading && !filteredFolderInfos.length && !filteredMediaInfos.length">
+            <h2 v-if="filterText && (mediaInfos.length || folderInfos.length)">No Items Match Filter</h2>
+            <h2 v-else>Folder is Empty</h2>
+        </div>
+        <div v-if="!isBulkEdit" style="height: 32px;"></div>
+        <div v-if="!isBulkEdit" class="footer-buttons">
             <button @click="newFolder">New Folder</button>
-            <button @click="startBulkEdit">Bulk Edit</button>
-            <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
-            <UploadFileModal @uploaded="refresh"></UploadFileModal>
+                <button @click="startBulkEdit">Bulk Edit</button>
+                <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
+                <UploadFileModal @uploaded="refresh"></UploadFileModal>
         </div>
         <div v-if="isBulkEdit" style="height: 64px;"></div>
         <div v-if="isBulkEdit" class="bulk-edit-footer">
@@ -303,12 +365,47 @@ function refresh(){
     height: 64px;
     background-color: var(--bulk-select-color);
     box-shadow: 0 0 8px 0 rgba(0,0,0,0.4);
+    z-index: 50;
+}
+
+.footer-buttons{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex; 
+    justify-content: end; 
+    align-items: center ;
+    gap: 4px; 
+    background: var(--bg-default);
+    z-index: 50;
+    border-top: 1px solid var(--border-default)
 }
 
 .selected {
     --tile-bg: var(--bulk-select-color)
 }
 
+.center-message{
+    padding-top: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-muted)
+}
+.fade-in{
+    animation: loadingfadein 1s;
+}
+
+@keyframes loadingfadein {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
 
 .btn{
     background: var(--bg-default);
@@ -331,7 +428,7 @@ function refresh(){
     gap: 10px;
     max-width: 800px;
     margin: 0 auto;
-    padding: 0 10px 30px 10px
+    padding: 4px 10px 30px 10px
 }
 
 @media (min-width: 1200px) {
@@ -339,16 +436,20 @@ function refresh(){
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         max-width: 1600px;
     }
+    .footer-buttons{
+        gap: 12px;
+    }
 }
 
 .top-section-grid{
         display: grid;
-        gap: 8px;
+        gap: 0 8px;
         grid-template-columns: 1fr auto;
         grid-template-rows: auto auto auto;
         grid-template-areas:
             "breadcrumbs breadcrumbs"
             ". filtersort"
+            "advancedFilter advancedFilter"
             "filterCount filterInput";
     }
 
@@ -358,6 +459,7 @@ function refresh(){
         grid-template-rows: auto auto;
         grid-template-areas:
             "breadcrumbs filtersort"
+            "advancedFilter advancedFilter"
             "filterCount filterInput";
     }
 

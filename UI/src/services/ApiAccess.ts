@@ -7,6 +7,14 @@ class ApiAccess {
         var json = await fetch(`${baseUrl}/api/dir-contents?path=${encodeURIComponent(path)}`).then(res => res.json());
         return <DirContentsResponse>json
     }
+    async searchDirContents(path: string, filter: string, considerFolders: boolean, typoTolerance: boolean, anyOrder: boolean): Promise<DirContentsResponse> {
+        var url = `${baseUrl}/api/dir-contents?path=${encodeURIComponent(path)}&filter=${filter}`;
+        if (considerFolders) url += "&considerFolderContents=true";
+        if (typoTolerance) url += "&typoTolerance=true";
+        if (anyOrder) url += "&anyOrder=true";
+        var json = await fetch(url).then(res => res.json());
+        return <DirContentsResponse>json
+    }
 
     async getDurations(path: string): Promise<GetDurationsResponse> {
         var json = await fetch(`${baseUrl}/api/dir-contents/durations?path=${encodeURIComponent(path)}`).then(res => res.json());

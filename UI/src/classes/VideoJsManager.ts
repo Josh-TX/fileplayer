@@ -199,7 +199,7 @@ export class VideoJsManager{
 
         const audioContext = new (window.AudioContext || (<any>window).webkitAudioContext)();
         const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048; // Controls the frequency resolution (higher = more bars)
+        analyser.fftSize = 8192; // Controls the frequency resolution (higher = more bars)
         analyser.smoothingTimeConstant = 0.7;
         const source = audioContext.createMediaElementSource(vid);
         source.connect(analyser);
@@ -213,18 +213,24 @@ export class VideoJsManager{
         function drawTriangle(){
             requestAnimationFrame(drawTriangle);
             analyser.getByteFrequencyData(dataArray);
-            copyToScaledData(dataArray, scaledDataArray)
+            copyToScaledData(dataArray, scaledDataArray, analyser.fftSize)
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const barCount = scaledDataArray.length;
+            const temp = scaledDataArray[0];
+            scaledDataArray[0] = scaledDataArray[0] * 0.67 + scaledDataArray[barCount-1] * 0.33;
+            scaledDataArray[barCount-1] = scaledDataArray[barCount-1] * 0.67 + temp * 0.33;
+            const avgVal = scaledDataArray.reduce((sum, val) => sum + val, 0) / scaledDataArray.length;
 
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            const focalLeftOffset = unit*7; //40
-            const focalRightOffset = unit*10.5; //58
-            const focalYOffset = unit*10; //55
-            const innerRadius = 20;
-            const outerRadius = 65;
-            const middleRadius = unit*7;
+            const focalLeftOffset = unit*7.3;
+            const focalRightOffset = unit*10.6;
+            const focalYOffset = unit*11.1;
+            //const innerRadius = unit*5;
+            //const outerRadius = unit*15
+            const middleRadius = unit*5;
+            const baseBarLength = unit*10;
+
             const PI = Math.PI;
             type Cor = [x: number, y: number]
             const A: Cor = [centerX + focalRightOffset, centerY]; //right
@@ -273,21 +279,20 @@ export class VideoJsManager{
             // ctx.beginPath();
             // ctx.arc(...C, 3, 0, PI * 2);
             // ctx.fill();
+            
 
-            ctx.beginPath();
+            //ctx.beginPath();
 
-            //draw solid logo
-            ctx.arc(...A, innerRadius, 0, PI / 2 - angleAtA/2);
-            ctx.arc(...B, innerRadius, PI/2 - angleAtA/2, PI);
-            ctx.arc(...C, innerRadius, PI, 3*PI/2 + angleAtA/2);
-            ctx.arc(...A, innerRadius, 3*PI / 2 + angleAtA/2, 0);
-            //fixed
-            ctx.arc(...A, outerRadius, 0, 3*PI / 2 + angleAtA/2, true);
-            ctx.arc(...C, outerRadius, 3*PI/2 + angleAtA/2, PI, true);
-            ctx.arc(...B, outerRadius, PI, PI/2 - angleAtA/2, true);
-            ctx.arc(...A, outerRadius, PI / 2 - angleAtA/2, 0, true);
-            //outer 
-            ctx.closePath();
+            ////draw solid logo
+            //ctx.arc(...A, innerRadius, 0, PI / 2 - angleAtA/2);
+            //ctx.arc(...B, innerRadius, PI/2 - angleAtA/2, PI);
+            //ctx.arc(...C, innerRadius, PI, 3*PI/2 + angleAtA/2);
+            //ctx.arc(...A, innerRadius, 3*PI / 2 + angleAtA/2, 0);
+            //ctx.arc(...A, outerRadius, 0, 3*PI / 2 + angleAtA/2, true);
+            //ctx.arc(...C, outerRadius, 3*PI/2 + angleAtA/2, PI, true);
+            //ctx.arc(...B, outerRadius, PI, PI/2 - angleAtA/2, true);
+            //ctx.arc(...A, outerRadius, PI / 2 - angleAtA/2, 0, true);
+            //ctx.closePath();
             //ctx.fill();
             var segments = [
                 Acircum / 2, ABdist, Bcircum, BCdist, Ccircum, CAdist, Acircum / 2
@@ -297,14 +302,16 @@ export class VideoJsManager{
             for (var i = 0; i < segments.length; i++){
                 segmentAccPercents[i] = segments[i] / pathLength + (i > 0 ? segmentAccPercents[i-1] : 0);
             }
-            const barGradient = ctx.createLinearGradient(centerX - 20, centerY+20, centerX + 25, centerY-30);
+            const barGradient = ctx.createLinearGradient(centerX - 20, centerY+20, centerX + 30, centerY-30);
             barGradient.addColorStop(0, "rgba(164, 107, 255, 1)");
             barGradient.addColorStop(0.4, "rgba(164, 107, 255, 1)");
             barGradient.addColorStop(0.6, "rgba(71, 162, 248, 1)");
             barGradient.addColorStop(1, "rgba(71, 162, 248, 1)");
+            const lowerBound = baseBarLength * (1 - Math.min(Math.max(0, avgVal - 20), 100) / 100 * 0.5);
+            const upperBound = baseBarLength + baseBarLength * (1 + Math.min(avgVal, 100) / 100 * 0.5);
             for (var i = 0; i < barCount; i++){
                 const freqValue = scaledDataArray[i] / 255; 
-                const barLength = unit*8 + unit*8 * freqValue;
+                const barLength = lerp(lowerBound, upperBound, freqValue);
                 var percent = i / barCount;
                 var segmentIndex = segmentAccPercents.findIndex(z => z > percent);
                 var segmentStartPercent = segmentIndex == 0 ? 0 : segmentAccPercents[segmentIndex - 1];
@@ -354,25 +361,21 @@ export class VideoJsManager{
             }
 
         }
-        
         vid.addEventListener("play", () => {
             if (audioContext.state === "suspended") {
                 audioContext.resume();
             }
         });
         drawTriangle();
-
-
     }
 }
 
-function copyToScaledData(fftDataArray: Uint8Array, scaledDataArray: Float64Array){
+function copyToScaledData(fftDataArray: Uint8Array, scaledDataArray: Float64Array, windowSize: number){
     var minFrequencyHz = 116.54 //58.27 //bflat1
     var maxFrequencyHz = 3729.31 //bflat7
     var minFrequencyHz = 55
     var maxFrequencyHz = 3450
     var sampleRate = 44100
-    var windowSize = 2048
     for (var i = 0; i < scaledDataArray.length; i++){
         var percent = inverseLerp(0, scaledDataArray.length - 1, i);
         var hz = expInterp(minFrequencyHz, maxFrequencyHz, percent)
