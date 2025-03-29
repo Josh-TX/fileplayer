@@ -80,7 +80,7 @@ const title = computed(() => {
 
                 <!-- I copy pasted breadcrumb component code since the other component is too coupled to navigation-->
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
+                    <ol class="breadcrumb" style="padding-left: 0;">
                         <li v-for="(item, index) in crumbs" :key="index" class="breadcrumb-item">
                             <!-- If it's not the last item, make it a clickable link -->
                             <template v-if="index < crumbs.length - 1">

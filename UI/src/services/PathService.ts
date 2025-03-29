@@ -17,7 +17,7 @@ class PathService{
             this._isFile.value = false;
         } else {
             var lastPart = this._path.value[this._path.value.length-1].toLowerCase();
-            if (fileTypeHelper.isMedia(lastPart)){
+            if (fileTypeHelper.isFile(lastPart)){
                 this._isFile.value = true;
             }
         }

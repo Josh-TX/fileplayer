@@ -7,10 +7,15 @@ import { apiAccess } from '@/services/ApiAccess';
 import BreadCrumbs from './BreadCrumbs.vue';
 import { VideoJsManager } from '@/classes/VideoJsManager';
 import { settingsService } from '@/services/SettingsService';
+import { fileTypeHelper } from '@/services/FileTypeHelper';
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 var src = ref<string | null>(null);
 var isNative = ref<boolean | null>(null);
+var isMedia = ref<boolean>(true);
+var isImage = ref<boolean>(false);
+var text = ref<string | null>(null);
+var textLoading = ref<boolean>(false);
 var showDropdown = ref<boolean>(false);
 var mediaInfo = shallowRef<MediaInfo | null>(pathService.getMediaInfo());
 var mounted = false;
@@ -25,7 +30,11 @@ settingsService.getSettingsAsync().then(z => {
 });
 
 watch(pathService.getPath(),(newVal, oldVal) => {
+    setupRan = false;
+    text.value = null;
+    isImage.value = false;
     updateSrc();
+    updateMediaInfo();
 });
 function updateSrc(){
     //we can't encodeURIComponent the path string because the slashes need to be not encoded
@@ -33,12 +42,15 @@ function updateSrc(){
     src.value = baseUrl + "/data/" + path.join("/");
 }
 updateSrc();
-
-if (!mediaInfo.value){//if mediaInfo is null, we directly loaded into the MediaPlayer rather than clicked on a media tile. 
+function updateMediaInfo(){
     apiAccess.getMediaInfo(pathService.getPathString()).then(z => {
         mediaInfo.value = z
         setup();
     });
+}
+
+if (!mediaInfo.value){//if mediaInfo is null, we directly loaded into the MediaPlayer rather than clicked on a media tile. 
+    updateMediaInfo();
 }
 watch(isNative, (newVal, oldVal) => {
     if (oldVal != null && newVal != null){ //if oldVal was null, this was probably triggered by loading the settings
@@ -59,20 +71,61 @@ onBeforeUnmount(() => {
     }
     document.body.removeEventListener("click", bodyClickHandler);
 });
-function setup(){
+async function setup(){
     if (!mediaInfo.value || !mounted || isNative.value == null || setupRan){
         return;
     }
     setupRan = true;
+    if (progressManager){
+        progressManager.dispose();
+    }
+    if (videoJsManager){
+        var prev = isNative.value;
+        isNative.value = null;
+        videoJsManager.dispose();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        isNative.value = prev;
+    }
+    var pathStr = pathService.getPathString();
+    if (!fileTypeHelper.isMedia(pathStr)){
+        isMedia.value = false;
+        if (fileTypeHelper.isText(pathStr)){
+            loadText();
+        } else if (fileTypeHelper.isImage(pathStr)){
+            isImage.value = true;
+        }
+        return;
+    }
+    
     document.title = mediaInfo.value.fileName;
     var id: string;
     if (!isNative.value){
         id = "default-video"
-        videoJsManager = new VideoJsManager(id);
+        nextTick(() => {
+            videoJsManager = new VideoJsManager(id);
+        });
     } else {
         id = "native-video"
     }
-    progressManager = new ProgressManager(pathService.getPathString(), mediaInfo.value.progress, id)
+    nextTick(() => {
+        progressManager = new ProgressManager(pathStr, mediaInfo.value!.progress, id)
+    });
+}
+
+async function loadText(){
+    textLoading.value = true;
+    text.value = await apiAccess.fetchAndLog(src.value!).then(response => response.text());
+    textLoading.value = false;
+}
+
+function openInTab(){
+    window.open(src.value!, '_blank');
+}
+function download(){
+    var a = document.createElement('a');
+    a.href = src.value!;
+    a.download = src.value!.split('/').pop()!;
+    a.click();
 }
 
 function stopPropogate(e: Event){
@@ -111,7 +164,7 @@ function changePlayer(newIsNative: boolean){
 
 <template>
     <div style="display: flex">
-        <div style="flex: 1 1 0;">
+        <div style="flex: 1 1 0; min-width: 0;">
             <BreadCrumbs></BreadCrumbs>
         </div>
         <div>
@@ -124,17 +177,30 @@ function changePlayer(newIsNative: boolean){
             </div>
         </div>
     </div>
-    <div v-if="isNative != null && !isNative" class="video-container">
+    <div v-if="isMedia && isNative != null && !isNative" class="video-container">
         <video v-if="src" class="video-element video-js" id="default-video" controls>
             <source :src="src!">
             Your browser does not support the video tag.
         </video>
     </div>
-    <div v-if="isNative != null && isNative" class="video-container">
+    <div v-if="isMedia && isNative != null && isNative" class="video-container">
         <video v-if="src" class="video-element" id="native-video" controls>
             <source :src="src!">
             Your browser does not support the video tag.
         </video>
+    </div>
+    <div v-if="isImage" style="display: flex; justify-content: center;">
+        <img :src="src!">
+    </div>
+    <div v-if="!isMedia && !text && !textLoading && !isImage" style="margin: 0 auto;">
+        <h2 style="text-align: center;">file does not have a supported file extension</h2>
+        <div style="display: flex; justify-content: space-between;">
+            <button @click="download">Download File</button>
+            <button @click="openInTab">Open in New Tab</button>
+        </div>
+    </div>
+    <div v-if="!isMedia && (text || textLoading)" style="padding: 0 4px;">
+        <pre>{{ text }}</pre>
     </div>
 </template>
 

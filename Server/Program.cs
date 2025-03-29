@@ -35,19 +35,36 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Serve files from the "data" folder
-#if DEBUG
-var dataFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "data");
-#else
-var dataFolderPath = "/data";
-#endif
+var dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
 if (Directory.Exists(dataFolderPath))
 {
-    app.UseStaticFiles(new StaticFileOptions
+    try
     {
-        FileProvider = new PhysicalFileProvider(dataFolderPath),
-        RequestPath = "/data",
-        ServeUnknownFileTypes = true
-    });
+        // When the host folder mounted onto /data lacks read permission, we get a very strange error. Hopefully this will clean up the error
+        var testAccess = Directory.EnumerateFileSystemEntries(dataFolderPath).Any();
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(dataFolderPath),
+            RequestPath = "/data",
+            ServeUnknownFileTypes = true
+        });
+    }
+    catch (UnauthorizedAccessException)
+    {
+        Console.WriteLine("Error: Insufficient permissions to read from /data. Please ensure the directory has appropriate read access.");
+        Environment.Exit(1);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Unexpected error accessing /data: {ex.Message}");
+        Environment.Exit(1);
+    }
+}
+else
+{
+    Console.WriteLine($"Error: /data directory doesn't exist");
+    Environment.Exit(1);
 }
 app.UseCors();
 

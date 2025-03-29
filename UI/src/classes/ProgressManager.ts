@@ -168,7 +168,9 @@ export class ProgressManager {
     private updateProgress(el: HTMLVideoElement){
         this._lastProgress = (el.currentTime / el.duration);
         this._lastUpdateTime = new Date().getTime();
-        apiAccess.updateProgress(this._lastProgress , this._path!);
+        if (!isNaN(this._lastProgress)){
+            apiAccess.updateProgress(this._lastProgress , this._path!);
+        }
     }
 
 

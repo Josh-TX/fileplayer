@@ -56,11 +56,13 @@ var filterChangedTimeout: number | undefined;
 
 var isAdvancedFilter = ref<boolean>(false);
 var anyOrder = ref<boolean>(false);
+var regex = ref<boolean>(false);
 var typeTolerance = ref<boolean>(false);
 var folderContents = ref<boolean>(false);
 
 
 watch(pathService.getPath(), (newVal, oldVal) => {
+    isFilterLoading.value = false;
     load();
 });
 modalService.registerOnRefresh(refresh);
@@ -111,13 +113,18 @@ function changeSortBy(newSortBy: string){
     }, 150)
     settingsService.updateSort(sortBy.value, sortDesc.value);
     sort();
+    cleanUpSortChange();
 }
 function toggleSortDesc(){
     sortDesc.value = !sortDesc.value
     settingsService.updateSort(sortBy.value, sortDesc.value);
     folderInfos.value.reverse();
     mediaInfos.value.reverse();
-    updateFilter();
+    cleanUpSortChange();
+}
+function cleanUpSortChange(){
+    filteredFolderInfos.value = folderInfos.value.filter(z => filteredFolderInfos.value.some(zz => zz.folderName == z.folderName));
+    filteredMediaInfos.value =  mediaInfos.value.filter(z => filteredMediaInfos.value.some(zz => zz.fileName == z.fileName));
 }
 
 async function newFolder(){
@@ -152,8 +159,12 @@ function sort(){
     }    
     else if (sortBy.value == "size"){
         folderInfos.value.sort((z1, z2) => z2.mediaDiskSize - z1.mediaDiskSize)
-        mediaInfos.value.sort((z1, z2) => z2.fileSize - z1.fileSize)
-        
+        mediaInfos.value.sort((z1, z2) => z2.fileSize - z1.fileSize) 
+    }
+    else if (sortBy.value == "random"){
+        var randSort = (_: any, i: number, arr: any[]) => { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; };
+        folderInfos.value.forEach(randSort);
+        mediaInfos.value.forEach(randSort);
     }
     else {
         folderInfos.value.sort((z1, z2) => z1.folderName.localeCompare(z2.folderName))
@@ -247,10 +258,15 @@ async function updateFilter(){
     if (isFilter.value){
         if (isAdvancedFilter.value && filterText.value){
             isFilterLoading.value = true;
-            var result = await apiAccess.searchDirContents(pathService.getPathString(), filterText.value, folderContents.value, typeTolerance.value, anyOrder.value);
+            var prevPath = pathService.getPathString();
+            var prevFilter = filterText.value;
+            var result = await apiAccess.searchDirContents(pathService.getPathString(), filterText.value, folderContents.value, typeTolerance.value, anyOrder.value, regex.value);
+            if (prevFilter != filterText.value || prevPath != pathService.getPathString()){
+                return; 
+            }
             isFilterLoading.value = false;
-            filteredFolderInfos.value = result.folderInfos;
-            filteredMediaInfos.value = result.mediaInfos;
+            filteredFolderInfos.value = folderInfos.value.filter(z => result.folderInfos.some(zz => zz.folderName == z.folderName));
+            filteredMediaInfos.value = mediaInfos.value.filter(z => result.mediaInfos.some(zz => zz.fileName == z.fileName));
         } else {
             var lower = filterText.value.toLowerCase();
             filteredFolderInfos.value = folderInfos.value.filter(z => z.folderName.toLowerCase().includes(lower));
@@ -287,6 +303,7 @@ function refresh(){
                             <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
                             <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
                             <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
+                            <div class="menu-item" @click="changeSortBy('random')"><span v-if="sortBy=='random'">✓</span>random</div>
                         </div>
                     </button>
                 </div>
@@ -298,13 +315,17 @@ function refresh(){
         </div>
         <div v-if="isFilter" class="text-muted" style="grid-area: advancedFilter; margin: 4px 8px; display: flex; flex-wrap: wrap; justify-content: end; gap: 12px;">
             <template v-if="isAdvancedFilter">
-                <label style="white-space: nowrap;">
-                    <input type="checkbox" v-model="anyOrder" @change="filterChanged">
+                <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
+                    <input type="checkbox" v-model="anyOrder" @change="filterChanged" :disabled="regex">
                     match words in any order
                 </label>
-                <label style="white-space: nowrap;">
-                    <input type="checkbox" v-model="typeTolerance" @change="filterChanged">
+                <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
+                    <input type="checkbox" v-model="typeTolerance" @change="filterChanged" :disabled="regex">
                     typo tolerance
+                </label>
+                <label style="white-space: nowrap;">
+                    <input type="checkbox" v-model="regex" @change="filterChanged">
+                    regex
                 </label>
                 <label style="white-space: nowrap;">
                     <input type="checkbox" v-model="folderContents" @change="filterChanged">

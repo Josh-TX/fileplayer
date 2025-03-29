@@ -186,7 +186,7 @@ export class VideoJsManager{
 
     private initSpectrum(vid: HTMLVideoElement){
         if (vid.videoWidth && vid.videoHeight){
-            return;//this is a video;
+            return;//this is a video, not just audio;
         }
         var canvas = document.createElement("canvas");
         canvas.classList.add("no-click")
@@ -220,8 +220,9 @@ export class VideoJsManager{
             scaledDataArray[0] = scaledDataArray[0] * 0.67 + scaledDataArray[barCount-1] * 0.33;
             scaledDataArray[barCount-1] = scaledDataArray[barCount-1] * 0.67 + temp * 0.33;
             for (var i = 0; i < smoothDataArray.length; i++){
-                const sum = scaledDataArray[i == 0 ? scaledDataArray.length-1 : i-1] + scaledDataArray[i] + scaledDataArray[i == smoothDataArray.length - 1 ? 0 : i + 1]
-                smoothDataArray[i] = sum / 3;
+                smoothDataArray[i] = scaledDataArray[i == 0 ? scaledDataArray.length-1 : i-1] * 0.25
+                    + scaledDataArray[i] * 0.5
+                    + scaledDataArray[i == smoothDataArray.length - 1 ? 0 : i + 1] * 0.25;
             }
             const avgVal = scaledDataArray.reduce((sum, val) => sum + val, 0) / scaledDataArray.length;
 
@@ -311,6 +312,7 @@ export class VideoJsManager{
             barGradient.addColorStop(0.4, "rgba(164, 107, 255, 1)");
             barGradient.addColorStop(0.6, "rgba(71, 162, 248, 1)");
             barGradient.addColorStop(1, "rgba(71, 162, 248, 1)");
+            ctx.strokeStyle = barGradient; 
             const lowerBound = baseBarLength * (1 - Math.min(Math.max(0, avgVal - 20), 100) / 100 * 0.5);
             const upperBound = baseBarLength + baseBarLength * (1 + Math.min(avgVal, 100) / 100 * 0.5);
             for (var i = 0; i < barCount; i++){
@@ -354,9 +356,8 @@ export class VideoJsManager{
                         break;
                 }
                 if (startCor != null && angle != null){
-                    var endCor = polarToCor(startCor, barLength, angle)
-                    ctx.strokeStyle = barGradient
-                    ctx.lineWidth = 2
+                    var endCor = polarToCor(startCor, barLength, angle);
+                    ctx.lineWidth = 1.5
                     ctx.beginPath();
                     ctx.moveTo(...startCor);
                     ctx.lineTo(...endCor);

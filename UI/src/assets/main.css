@@ -3,6 +3,7 @@
 
     --text-default: #333;
     --text-muted: #999;
+    --text-very-muted: #BBB;
     --text-primary: #3498db;
     --bg-default: #EEEEF6;
     --border-default: #CCC;
@@ -35,6 +36,7 @@
     :root {
         --text-default: #FFF;
         --text-muted: #ccc;
+        --text-very-muted: #888;
         --text-primary: #3498db;
         --bg-default: #333339;
         --border-default: #444;
@@ -83,7 +85,9 @@ body {
 .text-muted{
     color: var(--text-muted);
 }
-
+.text-very-muted{
+    color: var(--text-very-muted);
+}
 
 .context-menu {
     padding: 4px 0;
@@ -144,7 +148,7 @@ body {
 }
 
 .breadcrumb {
-    padding: 3px 0 5px 8px;
+    padding: 3px 0 5px 6px;
     margin: 0;
     list-style: none;
     display: flex;
@@ -244,6 +248,61 @@ video{
     }
     40% {
         opacity: 1; 
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 3vh;
+    left: 8px;
+    right: 8px;
+    z-index: 1000;
+    animation: toastfadein 0.3s ease-in-out 1 forwards
+}
+.toast-container.fadeout {
+    position: fixed;
+    bottom: 3vh;
+    left: 8px;
+    right: 8px;
+    z-index: 1000;
+    animation: toastfadeout 0.6s ease-in-out 1 forwards
+}
+
+.toast {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    max-width: 400px;
+    padding: 8px 12px;
+    margin: 0 auto;
+    background: #ddd;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px -1px #0003,
+    0 4px 5px #00000024,
+    0 1px 10px #0000001f;
+
+}
+
+.toast-error {
+    background: #910808;
+    color: #ffffff;
+}
+@keyframes toastfadein {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes toastfadeout {
+    0% {
+        opacity: 1;
     }
     100% {
         opacity: 0;

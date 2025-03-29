@@ -31,7 +31,7 @@ namespace FilePlayer.Controllers
             [FromQuery] string path = "",
             [FromQuery] string filter = "",
             [FromQuery] bool considerFolderContents = false,
-            [FromQuery] bool matchCase = false,
+            [FromQuery] bool regex = false,
             [FromQuery] bool typoTolerance = false,
             [FromQuery] bool anyOrder = false)
         {
@@ -42,13 +42,13 @@ namespace FilePlayer.Controllers
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {
-                return NotFound(new { Message = "Directory not found." });
+                return NotFound($"Directory '{path}' not found.");
             }
             var folderFileInfos = Directory.GetDirectories(fullDirectory).Select(d => new FileInfo(d)).ToList();
             var mediaFileInfos = Directory.GetFiles(fullDirectory).Select(f => new FileInfo(f)).ToList();
             if (!string.IsNullOrEmpty(filter))
             {
-                var filterManager = new FilterManager(filter, considerFolderContents, matchCase, typoTolerance, anyOrder);
+                var filterManager = new FilterManager(filter, considerFolderContents, regex, typoTolerance, anyOrder);
                 filterManager.ApplyFilter(folderFileInfos);
                 filterManager.ApplyFilter(mediaFileInfos);
             }
@@ -93,7 +93,7 @@ namespace FilePlayer.Controllers
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {
-                return NotFound(new { Message = "Directory not found." });
+                return NotFound($"Directory '{path}' not found.");
             }
             var directories = Directory.GetDirectories(fullDirectory).Select(d => Path.GetFileName(d)).ToList();
             var fileNames = Directory.GetFiles(fullDirectory).Select(f => Path.GetFileName(f)).ToList();

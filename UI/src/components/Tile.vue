@@ -100,6 +100,15 @@ async function copy(isMove: boolean){
     modalService.startMove(pathService.getPath().value, [[...pathService.getPath().value, computedName.value].join("/")], folderCount, isMove);
 }
 
+function download(){
+  var a = document.createElement('a');
+  var path = [...pathService.getPath().value, props.mediaInfo!.fileName].map(z => encodeURIComponent(z));
+  var url = [window.location.origin, "data", ...path].join("/")
+  a.href = url;
+  a.download = url.split('/').pop()!;
+  a.click();
+}
+
 
 async function del(){
     var name = computedName.value;
@@ -155,6 +164,7 @@ async function del(){
                 <div class="menu-item" @click="rename">Rename</div>
                 <div class="menu-item" @click="copy(true)">Move</div>
                 <div class="menu-item" @click="copy(false)">Copy</div>
+                <div v-if="mediaInfo" class="menu-item" @click="download()">Download</div>
                 <div class="menu-item" @click="del">Delete</div>
             </div>
         </div>
