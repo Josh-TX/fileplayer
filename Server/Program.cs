@@ -30,42 +30,36 @@ builder.Services.AddSingleton<DownloadService>();
 
 var app = builder.Build();
 
+var dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
+if (!Directory.Exists(dataFolderPath))
+{
+    Console.WriteLine($"Error: /data directory doesn't exist");
+    Environment.Exit(1);
+}
+try
+{
+    var fileNames = Directory.GetFiles("/data");
+    Console.WriteLine("/data directory has " + fileNames.Length + " files");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error attempting to read the /data folder: {ex.Message}");
+    Environment.Exit(1);
+}
+
+
 app.UseDefaultFiles();
 // Serve files from wwwroot folder
 app.UseStaticFiles();
 
 // Serve files from the "data" folder
-var dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
-if (Directory.Exists(dataFolderPath))
+app.UseStaticFiles(new StaticFileOptions
 {
-    try
-    {
-        // When the host folder mounted onto /data lacks read permission, we get a very strange error. Hopefully this will clean up the error
-        var testAccess = Directory.EnumerateFileSystemEntries(dataFolderPath).Any();
+    FileProvider = new PhysicalFileProvider(dataFolderPath),
+    RequestPath = "/data",
+    ServeUnknownFileTypes = true
+});
 
-        app.UseStaticFiles(new StaticFileOptions
-        {
-            FileProvider = new PhysicalFileProvider(dataFolderPath),
-            RequestPath = "/data",
-            ServeUnknownFileTypes = true
-        });
-    }
-    catch (UnauthorizedAccessException)
-    {
-        Console.WriteLine("Error: Insufficient permissions to read from /data. Please ensure the directory has appropriate read access.");
-        Environment.Exit(1);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Unexpected error accessing /data: {ex.Message}");
-        Environment.Exit(1);
-    }
-}
-else
-{
-    Console.WriteLine($"Error: /data directory doesn't exist");
-    Environment.Exit(1);
-}
 app.UseCors();
 
 app.MapControllers();
