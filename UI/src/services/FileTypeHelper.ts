@@ -1,4 +1,5 @@
 class FileTypeHelper{
+    //these lists should match FileTypeHelper.cs
     private _videoExtensions = [
         "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx"
     ];

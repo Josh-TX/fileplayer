@@ -10,6 +10,7 @@ import UploadFileModal from './UploadFileModal.vue';
 import UploadFromUrl from './UploadUrlModal.vue'
 import BreadCrumbs from './BreadCrumbs.vue';
 import Tile from './Tile.vue';
+import { fileTypeHelper } from '@/services/FileTypeHelper';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     if (!isBulkEdit.value){
@@ -80,7 +81,7 @@ async function load() {
         folderInfos.value = result.folderInfos
         mediaInfos.value = result.mediaInfos
         sort();
-        if (result.mediaInfos.some(z => z.duration == null)) {
+        if (result.mediaInfos.some(z => z.duration == null && fileTypeHelper.isMedia(z.fileName))) {
             loadDurations(pathString);
         }
         await updateFilter();

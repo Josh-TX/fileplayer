@@ -6,6 +6,7 @@ using System.Xml.Linq;
 
 public static class FileTypeHelper
 {
+    //this lists should match FileTypeHelper.ts
     private static string[] _mediaExtensions = new[]{
         "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "3gp", "m4v", "ogv", "mpeg", "mpg", "f4v", "rmvb", "asf", "vob", "mxf", "divx",
         "mp3", "wav", "aac", "flac", "ogg", "alac", "m4a", "opus", "mid", "midi"
