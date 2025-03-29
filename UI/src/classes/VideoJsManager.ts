@@ -192,9 +192,6 @@ export class VideoJsManager{
         canvas.classList.add("no-click")
         this._player.el().appendChild(canvas);
         const ctx = canvas.getContext("2d")!;
-
-        canvas.width = vid.clientWidth;
-        canvas.height = vid.clientHeight;
         var unit = Math.min(vid.clientWidth, vid.clientHeight) / 100;
 
         const audioContext = new (window.AudioContext || (<any>window).webkitAudioContext)();
@@ -207,10 +204,13 @@ export class VideoJsManager{
 
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        const scaledDataArray = new Float64Array(200);
+        const scaledDataArray = new Float64Array(300);
+        const smoothDataArray = new Float64Array(300);
 
         
         function drawTriangle(){
+            canvas.width = vid.clientWidth;
+            canvas.height = vid.clientHeight;
             requestAnimationFrame(drawTriangle);
             analyser.getByteFrequencyData(dataArray);
             copyToScaledData(dataArray, scaledDataArray, analyser.fftSize)
@@ -219,6 +219,10 @@ export class VideoJsManager{
             const temp = scaledDataArray[0];
             scaledDataArray[0] = scaledDataArray[0] * 0.67 + scaledDataArray[barCount-1] * 0.33;
             scaledDataArray[barCount-1] = scaledDataArray[barCount-1] * 0.67 + temp * 0.33;
+            for (var i = 0; i < smoothDataArray.length; i++){
+                const sum = scaledDataArray[i == 0 ? scaledDataArray.length-1 : i-1] + scaledDataArray[i] + scaledDataArray[i == smoothDataArray.length - 1 ? 0 : i + 1]
+                smoothDataArray[i] = sum / 3;
+            }
             const avgVal = scaledDataArray.reduce((sum, val) => sum + val, 0) / scaledDataArray.length;
 
             const centerX = canvas.width / 2;
@@ -310,7 +314,7 @@ export class VideoJsManager{
             const lowerBound = baseBarLength * (1 - Math.min(Math.max(0, avgVal - 20), 100) / 100 * 0.5);
             const upperBound = baseBarLength + baseBarLength * (1 + Math.min(avgVal, 100) / 100 * 0.5);
             for (var i = 0; i < barCount; i++){
-                const freqValue = scaledDataArray[i] / 255; 
+                const freqValue = smoothDataArray[i] / 255; 
                 const barLength = lerp(lowerBound, upperBound, freqValue);
                 var percent = i / barCount;
                 var segmentIndex = segmentAccPercents.findIndex(z => z > percent);
