@@ -1,6 +1,25 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
 
+//verifying /data folder here because otherwise there will be very messy errors later
+var dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
+if (!Directory.Exists(dataFolderPath))
+{
+    Console.WriteLine($"Error: /data directory doesn't exist");
+    Environment.Exit(1);
+}
+try
+{
+    var fileNames = Directory.GetFiles(dataFolderPath);
+    Console.WriteLine("/data directory contains " + fileNames.Length + " files");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error attempting to read the /data folder: {ex.Message}");
+    Environment.Exit(1);
+}
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -29,23 +48,6 @@ builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddSingleton<DownloadService>();
 
 var app = builder.Build();
-
-var dataFolderPath = Path.Combine(BasePathHelper.BasePath, "data");
-if (!Directory.Exists(dataFolderPath))
-{
-    Console.WriteLine($"Error: /data directory doesn't exist");
-    Environment.Exit(1);
-}
-try
-{
-    var fileNames = Directory.GetFiles("/data");
-    Console.WriteLine("/data directory has " + fileNames.Length + " files");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Error attempting to read the /data folder: {ex.Message}");
-    Environment.Exit(1);
-}
 
 
 app.UseDefaultFiles();
