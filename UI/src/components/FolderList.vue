@@ -33,13 +33,18 @@ function handleFolderClick(folderInfo: FolderInfo) {
         selectedFolderInfos.value = [...selectedFolderInfos.value, folderInfo]
     }
 }
-
-function getFolderUrl(folderInfo: FolderInfo) {
+function getFolderUrl(folderInfo: FolderInfo): string | undefined {
+    if (isBulkEdit.value){
+        return undefined;
+    }
     return pathService.getAppendedUrl(folderInfo.folderName);
-}
-function getMediaUrl(mediaInfo: MediaInfo) {
+ }
+ function getMediaUrl(mediaInfo: MediaInfo): string | undefined {
+    if (isBulkEdit.value){
+        return undefined;
+    }
     return pathService.getAppendedUrl(mediaInfo.fileName);
-}
+ }
 
 var folderInfos = shallowRef<FolderInfo[]>([]);
 var mediaInfos = shallowRef<MediaInfo[]>([]);
@@ -158,7 +163,7 @@ function bodyKeyDownHandler(e: KeyboardEvent){
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
         const isInputFocused = document.activeElement && document.activeElement.tagName === 'INPUT';
         if (!isInputFocused){
-            isBulkEdit.value = true;
+            startBulkEdit();
             selectedFolderInfos.value = [...filteredFolderInfos.value]
             selectedMediaInfos.value = [...filteredMediaInfos.value];
             e.preventDefault();
