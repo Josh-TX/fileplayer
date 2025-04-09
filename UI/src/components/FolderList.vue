@@ -14,26 +14,31 @@ import { fileTypeHelper } from '@/services/FileTypeHelper';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     if (!isBulkEdit.value){
-        pathService.appendFile(mediaInfo);
+        return //when not bulk editing, we use an <a> for navigation
+    } 
+    if (selectedMediaInfos.value.includes(mediaInfo)){
+        selectedMediaInfos.value = selectedMediaInfos.value.filter(z => z != mediaInfo);
     } else {
-        if (selectedMediaInfos.value.includes(mediaInfo)){
-            selectedMediaInfos.value = selectedMediaInfos.value.filter(z => z != mediaInfo);
-        } else {
-            selectedMediaInfos.value = [...selectedMediaInfos.value, mediaInfo]
-        }
+        selectedMediaInfos.value = [...selectedMediaInfos.value, mediaInfo]
     }
 }
 
 function handleFolderClick(folderInfo: FolderInfo) {
     if (!isBulkEdit.value){
-        pathService.appendFolder(folderInfo.folderName);
+        return //when not bulk editing, we use an <a> for navigation
+    } 
+    if (selectedFolderInfos.value.includes(folderInfo)){
+        selectedFolderInfos.value = selectedFolderInfos.value.filter(z => z != folderInfo);
     } else {
-        if (selectedFolderInfos.value.includes(folderInfo)){
-            selectedFolderInfos.value = selectedFolderInfos.value.filter(z => z != folderInfo);
-        } else {
-            selectedFolderInfos.value = [...selectedFolderInfos.value, folderInfo]
-        }
+        selectedFolderInfos.value = [...selectedFolderInfos.value, folderInfo]
     }
+}
+
+function getFolderUrl(folderInfo: FolderInfo) {
+    return pathService.getAppendedUrl(folderInfo.folderName);
+}
+function getMediaUrl(mediaInfo: MediaInfo) {
+    return pathService.getAppendedUrl(mediaInfo.fileName);
 }
 
 var folderInfos = shallowRef<FolderInfo[]>([]);
@@ -78,6 +83,10 @@ async function load() {
         isBulkEdit.value = false;
         isLoading.value = true;
         var result = await apiAccess.getDirContents(pathString);
+        if (result === null){
+            pathService.setIsFile();
+            return;
+        }
         var settings = await settingsService.getSettingsAsync();
         sortBy.value = settings.sortBy;
         sortDesc.value = settings.sortDesc;
@@ -145,12 +154,25 @@ function stopPropogate(e: Event){
 function bodyClickHandler(){
     showDropdown.value = false;
 }
+function bodyKeyDownHandler(e: KeyboardEvent){
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        const isInputFocused = document.activeElement && document.activeElement.tagName === 'INPUT';
+        if (!isInputFocused){
+            isBulkEdit.value = true;
+            selectedFolderInfos.value = [...filteredFolderInfos.value]
+            selectedMediaInfos.value = [...filteredMediaInfos.value];
+            e.preventDefault();
+        }
+    }
+}
 onMounted(() => {
     document.body.addEventListener("click", bodyClickHandler);
+    document.body.addEventListener("keydown", bodyKeyDownHandler);
     document.title = "Fileplayer";
 })
 onUnmounted(() => {
     document.body.removeEventListener("click", bodyClickHandler);
+    document.body.removeEventListener("keydown", bodyKeyDownHandler);
 })
 
 function sort(){
@@ -246,6 +268,11 @@ function toggleIsAdvanced(){
     updateFilter();
 }
 
+function clearFilter(){
+    filterText.value = "";
+    filterChanged();
+}
+
 function filterChanged(){
     clearTimeout(filterChangedTimeout);
     if (filterText.value){
@@ -338,17 +365,20 @@ function refresh(){
             </template>
         </div>
         <div v-if="isFilter" style="grid-area: filterInput; margin-bottom: 6px; margin-right: 8px;">
-            <input id="filter-input" placeholder="enter filter text" v-model="filterText" @input="filterChanged()" style="margin-right: 4px" autocomplete="off">
+            <div style="position: relative; margin-right: 4px; display: inline-block;">
+                <input id="filter-input" placeholder="enter filter text" v-model="filterText" @input="filterChanged()" autocomplete="off">
+                <div v-if="filterText" class="clear-btn" @click="clearFilter">&times;</div>
+            </div>
             <button @click="toggleIsAdvanced">advanced</button>
         </div>
     </div>
     <div>
         <div class="dir-content-grid" v-if="!isLoading && !isFilterLoading">
             <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
-                <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh"></Tile>
+                <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
             </div>
             <div v-for="mediaInfo of filteredMediaInfos" :class="{selected: selectedMediaInfos.includes(mediaInfo)}">
-                <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh"></Tile>
+                <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh" :url="getMediaUrl(mediaInfo)"></Tile>
             </div>
         </div>
         <div class="center-message fade-in" v-if="isLoading || isFilterLoading">
@@ -389,7 +419,7 @@ function refresh(){
     right: 0;
     height: 64px;
     background-color: var(--bulk-select-color);
-    box-shadow: 0 0 8px 0 rgba(0,0,0,0.4);
+    box-shadow: 0 0 8px 1px rgba(0,0,0,0.5);
     z-index: 50;
 }
 
@@ -454,6 +484,18 @@ function refresh(){
     max-width: 800px;
     margin: 0 auto;
     padding: 4px 10px 30px 10px
+}
+
+.clear-btn{
+    position: absolute;
+    right: 0;
+    top: 0px;
+    padding: 2px 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.clear-btn:hover{
+    color: var(--text-default);
 }
 
 @media (min-width: 1200px) {

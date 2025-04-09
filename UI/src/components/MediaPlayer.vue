@@ -17,7 +17,7 @@ var isImage = ref<boolean>(false);
 var text = ref<string | null>(null);
 var textLoading = ref<boolean>(false);
 var showDropdown = ref<boolean>(false);
-var mediaInfo = shallowRef<MediaInfo | null>(pathService.getMediaInfo());
+var mediaInfo = shallowRef<MediaInfo | null>(null);
 var mounted = false;
 var setupRan = false;
 var videoJsManager: VideoJsManager | null = null;
@@ -48,10 +48,7 @@ function updateMediaInfo(){
         setup();
     });
 }
-
-if (!mediaInfo.value){//if mediaInfo is null, we directly loaded into the MediaPlayer rather than clicked on a media tile. 
-    updateMediaInfo();
-}
+updateMediaInfo();
 watch(isNative, (newVal, oldVal) => {
     if (oldVal != null && newVal != null){ //if oldVal was null, this was probably triggered by loading the settings
         settingsService.updateUseNative(newVal)

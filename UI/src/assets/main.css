@@ -77,7 +77,10 @@ body {
     color: var(--text-default);
     box-sizing: border-box;
 }
-
+a {
+    all: unset;
+    cursor: pointer; /* Optional: keeps the pointer cursor */
+}
 #app {
     height: 100%;
 }

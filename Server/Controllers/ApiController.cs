@@ -42,7 +42,12 @@ namespace FilePlayer.Controllers
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {
-                return NotFound($"Directory '{path}' not found.");
+                if (System.IO.File.Exists(fullDirectory)) {
+                    return BadRequest("directory was a file");
+                } else
+                {
+                    return NotFound($"Directory '{path}' not found.");
+                }
             }
             var folderFileInfos = Directory.GetDirectories(fullDirectory).Select(d => new FileInfo(d)).ToList();
             var mediaFileInfos = Directory.GetFiles(fullDirectory).Select(f => new FileInfo(f)).ToList();

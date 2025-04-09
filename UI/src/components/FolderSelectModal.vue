@@ -26,8 +26,8 @@ async function load() {
     if (!modalService.isNewFolder.value){
         var pathString = modalService.currentPath.value.join("/");
         var result = await apiAccess.getDirContents(pathString);
-        if (pathString != modalService.currentPath.value.join("/")){
-            return; //path must have changed while loading
+        if (pathString != modalService.currentPath.value.join("/") || !result){
+            return;
         }
         folderInfos.value = result.folderInfos;
         mediaInfos.value = result.mediaInfos;

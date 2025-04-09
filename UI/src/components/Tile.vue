@@ -11,6 +11,7 @@ const props = defineProps<{
     folderInfo?: FolderInfo | undefined,
     mediaInfo?: MediaInfo | undefined,
     allowChanges?: boolean | undefined,
+    url?: string | undefined,
 }>()
 
 const computedName = computed(() => {
@@ -71,6 +72,7 @@ const computedDuration = computed(() => {
 var showDropdown = ref<boolean>(false);
 function dotsClicked(event: Event){
     event.stopPropagation();
+    event.preventDefault();
     showDropdown.value = !showDropdown.value;
 }
 function stopEvent(event: Event){
@@ -132,7 +134,7 @@ async function del(){
 
 <template>
 
-    <div class="tile-container" :class="getClass()">
+    <component :is="url ? 'a' : 'div'" :href="url ? url : null" class="tile-container" :class="getClass()">
         <div class="left-side">
             <template v-if="mediaInfo">
                 <div class="ext" v-if="isMedia()">{{ computedExtension }}</div>
@@ -170,7 +172,7 @@ async function del(){
         </div>
         <div v-if="mediaInfo && mediaInfo.progress != null" class="progress" :style="{width: (mediaInfo.progress*100)+'%'}"></div>
         <div v-if="mediaInfo && mediaInfo.progress != null" class="progress progress-gray"></div>
-    </div>
+    </component>
 </template>
 
 <style scoped>

@@ -15,8 +15,8 @@ function update() {
     })
 }
 
-function navigate(index: number) {
-    pathService.navigate(index);
+function getUrl(index: number): string{
+    return pathService.getTrimmedUrl(index);
 }
 
 </script>
@@ -27,7 +27,7 @@ function navigate(index: number) {
             <li v-for="(item, index) in crumbs" :key="index" class="breadcrumb-item">
                 <!-- If it's not the last item, make it a clickable link -->
                 <template v-if="index < crumbs.length - 1">
-                    <a class="link" href="#" @click.prevent="navigate(index)"><img v-if="index == 0" src="/favicon-32x32.png" class="text-logo">{{ item }}</a>
+                    <a class="link" :href="getUrl(index)"><img v-if="index == 0" src="/favicon-32x32.png" class="text-logo">{{ item }}</a>
                 </template>
                 <!-- If it's the last item, just display text -->
                 <template v-else>

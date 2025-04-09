@@ -4,8 +4,18 @@ import { toastrService } from "./ToastrService";
 
 class ApiAccess {
 
-    async getDirContents(path: string): Promise<DirContentsResponse> {
-        var json = await this.fetchAndLog(`${baseUrl}/api/dir-contents?path=${encodeURIComponent(path)}`).then(res => res.json());
+    async getDirContents(path: string): Promise<DirContentsResponse | null> {
+        const response = await fetch(`${baseUrl}/api/dir-contents?path=${encodeURIComponent(path)}`);
+        if (!response.ok){
+            var errorMessage = await response.text();
+            if (response.status == 400 && errorMessage == "directory was a file"){
+                return null;
+            }
+            errorMessage = errorMessage.replace(/^"|"$/g, '');
+            var displayedMessage = errorMessage.length < 500 ? errorMessage : "An error occurred. See console for details";
+            toastrService.showError(displayedMessage);
+        }
+        var json = await response.json();
         return <DirContentsResponse>json
     }
     async searchDirContents(path: string, filter: string, considerFolders: boolean, typoTolerance: boolean, anyOrder: boolean, regex: boolean): Promise<DirContentsResponse> {
