@@ -73,6 +73,9 @@ async function load() {
         var pathString = pathService.getPathString();
         folderInfos.value = [];
         mediaInfos.value = [];
+        selectedFolderInfos.value = [];
+        selectedMediaInfos.value = [];
+        isBulkEdit.value = false;
         isLoading.value = true;
         var result = await apiAccess.getDirContents(pathString);
         var settings = await settingsService.getSettingsAsync();

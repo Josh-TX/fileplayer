@@ -26,6 +26,9 @@ async function load() {
     if (!modalService.isNewFolder.value){
         var pathString = modalService.currentPath.value.join("/");
         var result = await apiAccess.getDirContents(pathString);
+        if (pathString != modalService.currentPath.value.join("/")){
+            return; //path must have changed while loading
+        }
         folderInfos.value = result.folderInfos;
         mediaInfos.value = result.mediaInfos;
         folderInfos.value.sort((z1, z2) => z1.folderName.localeCompare(z2.folderName))
