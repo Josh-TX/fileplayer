@@ -171,12 +171,15 @@ namespace FilePlayer.Controllers
         {
             if (double.IsNaN(progress))
             {
+                Console.WriteLine($"Unable to set progress for '{path}': Porgress is not a number");
                 return BadRequest("progress is NaN");
             }
             if (!FileTypeHelper.IsMediaFile(path))
             {
+                Console.WriteLine($"Unable to set progress for '{path}':path is not a file");
                 return BadRequest(new { Message = "not a media file" });
             }
+            Console.WriteLine($"Setting progress of {path} to {progress}");
             var fullPath = Path.Combine(_dataFolderPath, path);
             var fileInfo = new FileInfo(fullPath);
             var fileName = Path.GetFileName(path);
@@ -187,7 +190,7 @@ namespace FilePlayer.Controllers
             var size = fileInfo.Length;
             var fileId = FileIdHelper.GetId(fileName, size);
             _fileInfoService.SetProgress(fileId, Convert.ToSingle(progress));
-            return Ok();
+            return Ok("test2");
         }
 
         [HttpGet]

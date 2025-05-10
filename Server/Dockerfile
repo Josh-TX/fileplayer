@@ -25,9 +25,9 @@ RUN apt-get update \
 && chmod a+rx /usr/local/bin/ffmpeg \
 && apt-get purge -y --auto-remove wget unzip \
 && apt-get clean \
-&& rm -rf /var/lib/apt/lists/*
-
+&& rm -rf /var/lib/apt/lists/* \
+&& mkdir /data \
+&& mkdir /metadata
+WORKDIR /app
 COPY --from=dotnet-build /app .
-RUN mkdir /data
-RUN mkdir /metadata
-ENTRYPOINT ["./fileplayer"]
+ENTRYPOINT ["dotnet", "./fileplayer.dll"]
