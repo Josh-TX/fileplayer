@@ -16,7 +16,8 @@ namespace FilePlayer.Controllers
             FileInfoService fileInfoService,
             SettingsService settingsService,
             DownloadService downloadService
-            ) {
+            )
+        {
             _fileInfoService = fileInfoService;
             _settingsService = settingsService;
             _downloadService = downloadService;
@@ -38,13 +39,15 @@ namespace FilePlayer.Controllers
             if (path == "" && !Directory.Exists(_dataFolderPath))
             {
                 Directory.CreateDirectory(_dataFolderPath);
-            } 
+            }
             string fullDirectory = Path.Combine(_dataFolderPath, path);
             if (!Directory.Exists(fullDirectory))
             {
-                if (System.IO.File.Exists(fullDirectory)) {
+                if (System.IO.File.Exists(fullDirectory))
+                {
                     return BadRequest("directory was a file");
-                } else
+                }
+                else
                 {
                     return NotFound($"Directory '{path}' not found.");
                 }
@@ -81,7 +84,7 @@ namespace FilePlayer.Controllers
                     ModifyDate = fileInfo.LastWriteTime,
                     Progress = info?.Item1,
                 };
-            }); 
+            });
 
             var response = new DirContentsResponse
             {
@@ -113,7 +116,8 @@ namespace FilePlayer.Controllers
                 try
                 {
                     duration = await _fileInfoService.CalculateDuration(fileId, fullPath);
-                } catch (Exception)
+                }
+                catch (Exception)
                 {
                     //sometimes there's a failure when reading concurrently
                     duration = await _fileInfoService.CalculateDuration(fileId, fullPath);
@@ -171,15 +175,12 @@ namespace FilePlayer.Controllers
         {
             if (double.IsNaN(progress))
             {
-                Console.WriteLine($"Unable to set progress for '{path}': Porgress is not a number");
                 return BadRequest("progress is NaN");
             }
             if (!FileTypeHelper.IsMediaFile(path))
             {
-                Console.WriteLine($"Unable to set progress for '{path}':path is not a file");
                 return BadRequest(new { Message = "not a media file" });
             }
-            Console.WriteLine($"Setting progress of {path} to {progress}");
             var fullPath = Path.Combine(_dataFolderPath, path);
             var fileInfo = new FileInfo(fullPath);
             var fileName = Path.GetFileName(path);
@@ -190,7 +191,7 @@ namespace FilePlayer.Controllers
             var size = fileInfo.Length;
             var fileId = FileIdHelper.GetId(fileName, size);
             _fileInfoService.SetProgress(fileId, Convert.ToSingle(progress));
-            return Ok("test2");
+            return Ok();
         }
 
         [HttpGet]
@@ -236,7 +237,7 @@ namespace FilePlayer.Controllers
             {
                 return BadRequest("can't delete root directory");
             }
-            foreach(var filepath in request.FilePaths)
+            foreach (var filepath in request.FilePaths)
             {
                 string fullPath = Path.Combine(_dataFolderPath, filepath);
                 if (System.IO.File.Exists(fullPath))

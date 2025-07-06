@@ -1,5 +1,6 @@
 import { apiAccess } from '@/services/ApiAccess';
 import { settingsService } from '@/services/SettingsService';
+import { historyService, type EventType } from '@/services/HistoryService';
 
 
 export class ProgressManager {
@@ -112,7 +113,7 @@ export class ProgressManager {
         const currentProgress = (el.currentTime / el.duration);
         if (this._lastProgress == null){
             if (currentProgress > 0){
-                this.updateProgress(el);//we went from never watched to partially watched
+                this.updateProgress(el, "firstever");//we went from never watched to partially watched
             }
             return;
         }
@@ -123,25 +124,30 @@ export class ProgressManager {
             return; //progress is unchanged
         }
         if (this._lastProgress != 1 && currentProgress == 1){
-            this.updateProgress(el); //the video just went from not finished to finished
+            this.updateProgress(el, "restarted"); //the video just went from not finished to finished
             return;
         }
         if (currentProgress < this._lastProgress){
-            this.updateProgress(el); //the video was seeked backwards
+            this.updateProgress(el, "seekbackwards"); //the video was seeked backwards
             return;
         }
         if (this._lastUpdateTime == null){
-            this.updateProgress(el); //first update this session
+            this.updateProgress(el, "firstupdate"); //first update this session
             return;
         }
+        
         var videoSecondsElapsed = (currentProgress - this._lastProgress) * el.duration;
+        if (videoSecondsElapsed > 60) {
+            this.updateProgress(el, "seekforwards"); //video was seeked forwards
+            return;
+        }
         if (videoSecondsElapsed > 8){
-            this.updateProgress(el); //video is over 8 seconds ahead of the last update
+            this.updateProgress(el, "playing"); //video is over 8 seconds ahead of the last update
             return;
         }
         var timeSinceLastUpdate = ((new Date().getTime() - this._lastUpdateTime)) / 1000;
         if (timeSinceLastUpdate > 4){
-            this.updateProgress(el); //It's been 4 seconds since the last update
+            this.updateProgress(el, "playing"); //It's been 4 seconds since the last update
             return;
         }
     }
@@ -165,11 +171,24 @@ export class ProgressManager {
         return el ? el : null;
     }
 
-    private updateProgress(el: HTMLVideoElement){
-        this._lastProgress = (el.currentTime / el.duration);
-        this._lastUpdateTime = new Date().getTime();
-        if (!isNaN(this._lastProgress)){
-            apiAccess.updateProgress(this._lastProgress , this._path!);
+    private updateProgress(el: HTMLVideoElement, type: EventType){
+        try {
+            historyService.RecordEvent({
+                path: this._path,
+                currentTime: el.currentTime,
+                type: type
+            })
+            this._lastProgress = (el.currentTime / el.duration);
+            this._lastUpdateTime = new Date().getTime();
+            if (!isNaN(this._lastProgress)){
+                apiAccess.updateProgress(this._lastProgress , this._path!);
+            }
+        } catch {
+            historyService.RecordEvent({
+                path: this._path,
+                currentTime: el.currentTime,
+                type: "error"
+            })
         }
     }
 

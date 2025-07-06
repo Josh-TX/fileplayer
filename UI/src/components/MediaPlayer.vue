@@ -8,6 +8,7 @@ import BreadCrumbs from './BreadCrumbs.vue';
 import { VideoJsManager } from '@/classes/VideoJsManager';
 import { settingsService } from '@/services/SettingsService';
 import { fileTypeHelper } from '@/services/FileTypeHelper';
+import HistoryModal from "./HistoryModal.vue";
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
 var src = ref<string | null>(null);
@@ -22,6 +23,7 @@ var mounted = false;
 var setupRan = false;
 var videoJsManager: VideoJsManager | null = null;
 var progressManager: ProgressManager | null = null;
+var isHistoryModalOpen = ref<boolean>(false);
 settingsService.getSettingsAsync().then(z => {
     isNative.value = z.useNative
     nextTick(() => {
@@ -157,6 +159,13 @@ function changePlayer(newIsNative: boolean){
     }
 }
 
+function showHistory(){
+    isHistoryModalOpen.value = true;
+}
+function hideHistory(){
+    isHistoryModalOpen.value = false;
+}
+
 </script>
 
 <template>
@@ -170,6 +179,7 @@ function changePlayer(newIsNative: boolean){
                 <div class="context-menu checkable" :class="{active: showDropdown}">
                     <div class="menu-item" @click="changePlayer(false)"><span v-if="!isNative">✓</span>VideoJS Player</div>
                     <div class="menu-item" @click="changePlayer(true)"><span v-if="isNative">✓</span>Native Player</div>
+                    <div class="menu-item" @click="showHistory()">Show History</div>
                 </div>
             </div>
         </div>
@@ -199,6 +209,7 @@ function changePlayer(newIsNative: boolean){
     <div v-if="!isMedia && (text || textLoading)" style="padding: 0 4px;">
         <pre>{{ text }}</pre>
     </div>
+    <HistoryModal v-if="isHistoryModalOpen" @closed="hideHistory"></HistoryModal>
 </template>
 
 <style scoped>
