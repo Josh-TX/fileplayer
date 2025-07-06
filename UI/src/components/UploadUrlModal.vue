@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue';
-import FileDrop from './FileDrop.vue';
 import { pathService } from '@/services/PathService';
 import { apiAccess } from '@/services/ApiAccess';
 import type { UrlInfo } from '@/models/models';
