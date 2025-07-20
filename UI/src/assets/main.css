@@ -96,7 +96,7 @@ a {
     padding: 4px 0;
     display: none;
     border-radius: 4px;
-    z-index: 5;
+    z-index: 75;
     flex-direction: column;
     position: absolute;
     top: 100%;
@@ -120,6 +120,11 @@ a {
     cursor: pointer;
     position: relative;
     white-space: nowrap;
+}
+
+.menu-sep{
+    border-top: 1px solid var(--dropdown-border);
+    margin: 4px 4px;
 }
 
 .checkable>.menu-item {

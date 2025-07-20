@@ -138,11 +138,11 @@ async function del(){
         <div class="left-side">
             <template v-if="mediaInfo">
                 <div class="ext" v-if="isMedia()">{{ computedExtension }}</div>
-                <img src="/file-icon.png">
+                <img src="/file-icon.png" draggable="false">
             </template>
             <template v-else>
-                <img v-if="isDownload()" src="/folder-download-icon.png">
-                <img v-else src="/folder-icon.png">
+                <img v-if="isDownload()" src="/folder-download-icon.png" draggable="false">
+                <img v-else src="/folder-icon.png" draggable="false">
             </template>
         </div>
         <div class="right-side">
@@ -249,6 +249,7 @@ async function del(){
     box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
     max-width: 36px;
     overflow: hidden;
+    user-select: none;
 }
 
 .info-container{

@@ -32,6 +32,7 @@ export type Settings = {
     playbackSpeed: number;
     sortBy: string;
     sortDesc: boolean;
+    foldersFirst: boolean,
     useMDate: boolean;
     preferredHeight: number | null;
     compatCodec: boolean;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { watch, shallowRef, type ShallowRef, ref, onUnmounted, onMounted } from 'vue';
+import { watch, shallowRef, type ShallowRef, ref, onUnmounted, onMounted, computed } from 'vue';
 import { apiAccess } from '@/services/ApiAccess';
 import { pathService } from '@/services/PathService';
 import { modalService } from '@/services/ModalService';
@@ -11,6 +11,7 @@ import UploadFromUrl from './UploadUrlModal.vue'
 import BreadCrumbs from './BreadCrumbs.vue';
 import Tile from './Tile.vue';
 import { fileTypeHelper } from '@/services/FileTypeHelper';
+import { dragService } from '@/services/DragService';
 
 function handleMediaClick(mediaInfo: MediaInfo) {
     if (!isBulkEdit.value){
@@ -63,6 +64,7 @@ var isFilterLoading = ref<boolean>(false);
 var isLoading = ref<boolean>(false);
 var filterText = ref<string>("");
 var sortBy = ref<string>("name");
+var foldersFirst = ref<boolean>(false);
 var filterChangedTimeout: number | undefined;
 
 var isAdvancedFilter = ref<boolean>(false);
@@ -77,6 +79,38 @@ watch(pathService.getPath(), (newVal, oldVal) => {
     load();
 });
 modalService.registerOnRefresh(refresh);
+
+var computedSortCombined = computed(() => {
+    const combined = [
+        ...filteredFolderInfos.value,
+        ...filteredMediaInfos.value
+    ];
+    if (sortBy.value == "modified"){
+        combined.sort((z1, z2) => new Date(z2.modifyDate).getTime() - new Date(z1.modifyDate).getTime())
+    }
+    else if (sortBy.value == "duration"){
+        combined.sort((z1, z2) => ((<any>z2).duration != null ? (<any>z2).duration : 0) - ((<any>z1).duration != null ? (<any>z1).duration : 0))
+    }    
+    else if (sortBy.value == "size"){
+        combined.sort((z1, z2) => ((<any>z2).fileSize != null ? (<any>z2).fileSize : (<any>z2).mediaDiskSize) - ((<any>z1).fileSize != null ? (<any>z1).fileSize : (<any>z1).mediaDiskSize))
+    }
+    else if (sortBy.value == "random"){
+        var randSort = (_: any, i: number, arr: any[]) => { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; };
+        combined.forEach(randSort);
+    }
+    else {
+        combined.sort((z1, z2) => ((<any>z1).folderName != null ? (<any>z1).folderName : (<any>z1).fileName).localeCompare((<any>z2).folderName != null ? (<any>z2).folderName : (<any>z2).fileName))
+    }
+    if (!sortDesc.value){
+        combined.reverse();
+    }
+    return combined.map(z => {
+        return {
+            folder: (<any>z).folderName != null ? <FolderInfo>z : null,
+            media: (<any>z).fileName != null ? <MediaInfo>z : null
+        }
+    })
+})
 
 async function load() {
     if (!pathService.isFile().value) {
@@ -94,6 +128,7 @@ async function load() {
         }
         var settings = await settingsService.getSettingsAsync();
         sortBy.value = settings.sortBy;
+        foldersFirst.value = settings.foldersFirst
         sortDesc.value = settings.sortDesc;
         folderInfos.value = result.folderInfos
         mediaInfos.value = result.mediaInfos
@@ -124,18 +159,28 @@ async function loadDurations(pathString: string, ){
     updateFilter();
 }
 
+function toggleFoldersFirst(){
+    foldersFirst.value = !foldersFirst.value;
+    setTimeout(() => {
+        showDropdown.value = false;
+    }, 150)
+    settingsService.updateSort(sortBy.value, sortDesc.value, foldersFirst.value);
+    sort();
+    cleanUpSortChange();
+}
+
 function changeSortBy(newSortBy: string){
     sortBy.value = newSortBy;
     setTimeout(() => {
         showDropdown.value = false;
     }, 150)
-    settingsService.updateSort(sortBy.value, sortDesc.value);
+    settingsService.updateSort(sortBy.value, sortDesc.value, foldersFirst.value);
     sort();
     cleanUpSortChange();
 }
 function toggleSortDesc(){
     sortDesc.value = !sortDesc.value
-    settingsService.updateSort(sortBy.value, sortDesc.value);
+    settingsService.updateSort(sortBy.value, sortDesc.value, foldersFirst.value);
     folderInfos.value.reverse();
     mediaInfos.value.reverse();
     cleanUpSortChange();
@@ -160,24 +205,42 @@ function bodyClickHandler(){
     showDropdown.value = false;
 }
 function bodyKeyDownHandler(e: KeyboardEvent){
+    const isInputFocused = document.activeElement && document.activeElement.tagName === 'INPUT';
+    if (isInputFocused){
+        return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-        const isInputFocused = document.activeElement && document.activeElement.tagName === 'INPUT';
-        if (!isInputFocused){
-            startBulkEdit();
-            selectedFolderInfos.value = [...filteredFolderInfos.value]
-            selectedMediaInfos.value = [...filteredMediaInfos.value];
-            e.preventDefault();
-        }
+        startBulkEdit();
+        selectedFolderInfos.value = [...filteredFolderInfos.value]
+        selectedMediaInfos.value = [...filteredMediaInfos.value];
+        e.preventDefault();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && isBulkEdit.value) {
+        bulkCopy(false);
+        e.preventDefault();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x' && isBulkEdit.value) {
+        bulkCopy(true);
+        e.preventDefault();
+    }
+    console.log(e.key)
+    if (e.key.toLowerCase() === 'delete' && isBulkEdit.value) {
+        bulkDelete();
+        e.preventDefault();
     }
 }
+
+
 onMounted(() => {
     document.body.addEventListener("click", bodyClickHandler);
     document.body.addEventListener("keydown", bodyKeyDownHandler);
     document.title = "Fileplayer";
+    dragService.subscribeMove(refresh);
 })
 onUnmounted(() => {
     document.body.removeEventListener("click", bodyClickHandler);
     document.body.removeEventListener("keydown", bodyKeyDownHandler);
+    dragService.unsubscribeMove(refresh)
 })
 
 function sort(){
@@ -340,6 +403,8 @@ function refresh(){
                             <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
                             <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
                             <div class="menu-item" @click="changeSortBy('random')"><span v-if="sortBy=='random'">✓</span>random</div>
+                            <div class="menu-sep"></div>
+                            <div class="menu-item" @click="toggleFoldersFirst()"><span v-if="foldersFirst">✓</span>folders first</div>
                         </div>
                     </button>
                 </div>
@@ -379,12 +444,24 @@ function refresh(){
     </div>
     <div>
         <div class="dir-content-grid" v-if="!isLoading && !isFilterLoading">
-            <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
-                <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
-            </div>
-            <div v-for="mediaInfo of filteredMediaInfos" :class="{selected: selectedMediaInfos.includes(mediaInfo)}">
-                <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh" :url="getMediaUrl(mediaInfo)"></Tile>
-            </div>
+            <template v-if="foldersFirst">
+                <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
+                    <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
+                </div>
+                <div v-for="mediaInfo of filteredMediaInfos" :class="{selected: selectedMediaInfos.includes(mediaInfo)}">
+                    <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh" :url="getMediaUrl(mediaInfo)"></Tile>
+                </div>
+            </template>
+            <template v-if="!foldersFirst">
+                <template v-for="info of computedSortCombined">
+                    <div v-if="info.folder" :class="{selected: selectedFolderInfos.includes(info.folder)}" >
+                        <Tile :folderInfo="info.folder" :allowChanges="!isBulkEdit" @click="handleFolderClick(info.folder)" @changed="refresh" :url="getFolderUrl(info.folder)"></Tile>
+                    </div>
+                    <div v-if="info.media" :class="{selected: selectedMediaInfos.includes(info.media)}">
+                        <Tile :mediaInfo="info.media" :allowChanges="!isBulkEdit" @click="handleMediaClick(info.media)" @changed="refresh" :url="getMediaUrl(info.media)"></Tile>
+                    </div>
+                </template>
+            </template>
         </div>
         <div class="center-message fade-in" v-if="isLoading || isFilterLoading">
             <h2>loading</h2>

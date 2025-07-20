@@ -2,49 +2,28 @@
 import { ref } from 'vue';
 import FolderList from './components/FolderList.vue';
 import { pathService } from '@/services/PathService';
-import BreadCrumbs from './components/BreadCrumbs.vue';
 import MediaPlayer from './components/MediaPlayer.vue';
 import FolderSelectModal from './components/FolderSelectModal.vue'
 import { fileDropService } from './services/FileDropService';
+import { dragService } from './services/DragService';
+import { fileTypeHelper } from './services/FileTypeHelper';
+import { apiAccess } from '@/services/ApiAccess';
 console.log("Made by Josh-TX")
 console.log("https://github.com/Josh-TX/fileplayer")
-
-
-const isDragging = ref(false);
-function dragEnter(event: DragEvent) {
-    console.log("dragEnter")
-    event.preventDefault();
-    isDragging.value = true;
-};
-function dragLeave(event: DragEvent) {
-    event.preventDefault();
-    var relatedTarget = event.relatedTarget //|| event.fromElement;
-    var dropArea = document.getElementById("app-main");
-    if (!dropArea || !dropArea!.contains(<any>relatedTarget)) {
-        isDragging.value = false;
-    }
-};
-function handleDrop(event: DragEvent){
-    const files = event.dataTransfer?.files;
-    if (files) {
-        fileDropService.filesDropped(Array.from(files));
-    }
-    isDragging.value = false;
-};
 
 </script>
 
 <template>
-    <div id="app-main" style="display: flex; flex-direction: column; height: 100%;" @dragover.prevent @dragenter.prevent="dragEnter" @dragleave="dragLeave" @drop.prevent="handleDrop">
+    <FolderSelectModal></FolderSelectModal>
+    <div id="app-main" style="display: flex; flex-direction: column; height: 100%;" @dragover.prevent @dragenter.prevent="dragService.dragEnter" @dragleave="dragService.dragLeave" @drop.prevent="dragService.handleDrop">
         <FolderList v-if="!pathService.isFile().value"></FolderList>
         <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
-        <div :class="['file-drop-overlay', { 'drag-over': isDragging && !pathService.isFile().value }]">
+        <div :class="['file-drop-overlay', { 'drag-over': dragService.isDragging.value && !pathService.isFile().value }]">
             <div class="inner-overlay">
                 Drop Files Here
             </div>
         </div>
     </div>
-    <FolderSelectModal></FolderSelectModal>
 </template>
 
 <style scoped>

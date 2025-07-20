@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
 import { pathService } from '@/services/PathService';
 import { apiAccess } from '@/services/ApiAccess';
-import { fileDropService } from '@/services/FileDropService';
+import { dragService } from '@/services/DragService';
 
 var emits = defineEmits(['uploaded'])
 const open = ref(false)
@@ -14,9 +14,6 @@ const finishedFiles = shallowRef<File[]>([])
 
 
 const displayPath = computed(() => pathService.getPathString() || "root");
-function filesAdded(addedFiles: File[]) {
-    files.value = addedFiles;
-}
 
 async function upload() {
     if (queuedFiles.value.length){
@@ -60,11 +57,11 @@ function handleFileSelect(event: Event) {
 };
 
 onMounted(() => {
-    fileDropService.subscribe(onDrop);
+    dragService.subscribeFile(onDrop);
 })
 
 onUnmounted(() => {
-    fileDropService.unsubscribe(onDrop);
+    dragService.unsubscribeFile(onDrop);
 })
 
 </script>

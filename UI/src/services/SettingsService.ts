@@ -5,6 +5,7 @@ import type { Settings } from "@/models/models";
 class SettingsService {
     private _settings: Settings = {
         sortBy: "name",
+        foldersFirst: true,
         playbackSpeed: 1,
         sortDesc: true,
         preferredHeight: 720,
@@ -32,10 +33,11 @@ class SettingsService {
         }
     }
 
-    updateSort(sortBy: string, sortDesc: boolean){
-        if (this._settings.sortBy != sortBy || this._settings.sortDesc != sortDesc){
+    updateSort(sortBy: string, sortDesc: boolean, foldersFirst: boolean){
+        if (this._settings.sortBy != sortBy || this._settings.sortDesc != sortDesc || this._settings.foldersFirst != foldersFirst){
             this._settings.sortBy = sortBy;
             this._settings.sortDesc = sortDesc;
+            this._settings.foldersFirst = foldersFirst;
             apiAccess.updateSettings(this._settings);
         }
     }
