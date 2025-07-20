@@ -62,6 +62,7 @@ var isBulkEdit = ref<boolean>(false);
 var isFilter = ref<boolean>(false);
 var isFilterLoading = ref<boolean>(false);
 var isLoading = ref<boolean>(false);
+var isRefreshLoading = ref<boolean>(false);
 var filterText = ref<string>("");
 var sortBy = ref<string>("name");
 var foldersFirst = ref<boolean>(false);
@@ -76,7 +77,7 @@ var folderContents = ref<boolean>(false);
 
 watch(pathService.getPath(), (newVal, oldVal) => {
     isFilterLoading.value = false;
-    load();
+    load(false);
 });
 modalService.registerOnRefresh(refresh);
 
@@ -112,15 +113,19 @@ var computedSortCombined = computed(() => {
     })
 })
 
-async function load() {
+async function load(fromRefresh: boolean) {
     if (!pathService.isFile().value) {
         var pathString = pathService.getPathString();
-        folderInfos.value = [];
-        mediaInfos.value = [];
         selectedFolderInfos.value = [];
         selectedMediaInfos.value = [];
         isBulkEdit.value = false;
         isLoading.value = true;
+        if (fromRefresh){
+            isRefreshLoading.value = true;
+        } else {
+            folderInfos.value = [];
+            mediaInfos.value = [];
+        }
         var result = await apiAccess.getDirContents(pathString);
         if (result === null){
             pathService.setIsFile();
@@ -138,9 +143,10 @@ async function load() {
         }
         await updateFilter();
         isLoading.value = false;
+        isRefreshLoading.value = false;
     }
 }
-load();
+load(false);
 
 async function loadDurations(pathString: string, ){
     var durationsResponse = await apiAccess.getDurations(pathString);
@@ -381,7 +387,7 @@ async function updateFilter(){
 }
 
 function refresh(){
-    load();
+    load(true);
 }
 
 </script>
@@ -442,8 +448,8 @@ function refresh(){
             <button @click="toggleIsAdvanced">advanced</button>
         </div>
     </div>
-    <div>
-        <div class="dir-content-grid" v-if="!isLoading && !isFilterLoading">
+    <div style="position: relative">
+        <div class="dir-content-grid" v-if="isRefreshLoading || (!isLoading && !isFilterLoading)">
             <template v-if="foldersFirst">
                 <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
                     <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
@@ -463,8 +469,11 @@ function refresh(){
                 </template>
             </template>
         </div>
-        <div class="center-message fade-in" v-if="isLoading || isFilterLoading">
+        <div class="center-message fade-in" v-if="!isRefreshLoading && (isLoading || isFilterLoading)">
             <h2>loading</h2>
+        </div>
+        <div v-if="isRefreshLoading" class="loading-overlay fast-fade-in">
+            <h1 style="position: fixed; top: 40vh; text-align: center; left: 0; right: 0; text-shadow: 2px 2px 2px #000000;">loading</h1>
         </div>
         <div class="center-message" v-if="!isLoading && !isFilterLoading && !filteredFolderInfos.length && !filteredMediaInfos.length">
             <h2 v-if="filterText && (mediaInfos.length || folderInfos.length)">No Items Match Filter</h2>
@@ -534,6 +543,9 @@ function refresh(){
 .fade-in{
     animation: loadingfadein 1s;
 }
+.fast-fade-in{
+    animation: loadingfadein 0.3s;
+}
 
 @keyframes loadingfadein {
     0% {
@@ -578,6 +590,15 @@ function refresh(){
 }
 .clear-btn:hover{
     color: var(--text-default);
+}
+
+.loading-overlay{
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.4);
 }
 
 @media (min-width: 1200px) {
