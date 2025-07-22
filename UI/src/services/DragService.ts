@@ -71,7 +71,8 @@ class DragService{
                 console.log("at least 1 url isn't relative to current path")
             }
             var commonLength = currentPath == "" ? 0 : currentPath.length + 1;
-            var response = confirm(`Move ${draggedUrl.substring(commonLength)} to ${dropUrl.substring(commonLength)}?`)
+            var toFolder = dropUrl ? dropUrl.substring(commonLength) : "root"
+            var response = confirm(`Move ${draggedUrl.substring(commonLength)} to ${toFolder}?`)
             if (response){
                 apiAccess.copyItems({
                     isMove: true,

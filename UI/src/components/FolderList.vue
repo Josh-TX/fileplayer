@@ -313,7 +313,6 @@ function bulkCopy(isMove: boolean){
     var folderPaths = selectedFolderInfos.value.map(z => [...path, z.folderName].join("/"));
     var mediaPaths = selectedMediaInfos.value.map(z => [...path, z.fileName].join("/"));
     modalService.startMove(path, folderPaths.concat(mediaPaths), folderPaths.length, isMove);
-    stopBulkEdit();
 }
 
 async function bulkDelete(){
