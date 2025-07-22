@@ -4,25 +4,25 @@ import { fileTypeHelper } from "./FileTypeHelper";
 import { pathService } from "./PathService";
 import { apiAccess } from "./ApiAccess";
 
-type fileCallback = (files: File[]) => any
-type moveCallback = () => any
+type FileCallback = (files: File[]) => any
+type MoveCallback = () => any
 
 class DragService{
-    _fileSubscriptions: fileCallback[] = []
-    _moveSubscriptions: moveCallback[] = []
+    _fileSubscriptions: FileCallback[] = []
+    _moveSubscriptions: MoveCallback[] = []
     constructor(){
         
     }
-    subscribeFile(callback: fileCallback){
+    subscribeFile(callback: FileCallback){
         this._fileSubscriptions.push(callback)
     }
-    unsubscribeFile(callback: fileCallback){
+    unsubscribeFile(callback: FileCallback){
         this._fileSubscriptions = this._fileSubscriptions.filter(z => z != callback);
     }
-    subscribeMove(callback: moveCallback){
+    subscribeMove(callback: MoveCallback){
         this._moveSubscriptions.push(callback)
     }
-    unsubscribeMove(callback: moveCallback){
+    unsubscribeMove(callback: MoveCallback){
         this._moveSubscriptions = this._moveSubscriptions.filter(z => z != callback);
     }
 
@@ -73,7 +73,6 @@ class DragService{
             var commonLength = currentPath == "" ? 0 : currentPath.length + 1;
             var response = confirm(`Move ${draggedUrl.substring(commonLength)} to ${dropUrl.substring(commonLength)}?`)
             if (response){
-                console.log(dropUrl, draggedUrl)
                 apiAccess.copyItems({
                     isMove: true,
                     filePaths: [draggedUrl],

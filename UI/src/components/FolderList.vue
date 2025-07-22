@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { watch, shallowRef, type ShallowRef, ref, onUnmounted, onMounted, computed } from 'vue';
+import { watch, shallowRef, type ShallowRef, ref, onUnmounted, onMounted, computed, nextTick } from 'vue';
 import { apiAccess } from '@/services/ApiAccess';
 import { pathService } from '@/services/PathService';
 import { modalService } from '@/services/ModalService';
@@ -12,7 +12,7 @@ import BreadCrumbs from './BreadCrumbs.vue';
 import Tile from './Tile.vue';
 import { fileTypeHelper } from '@/services/FileTypeHelper';
 import { dragService } from '@/services/DragService';
-
+import { scrollService } from '@/services/ScrollService';
 function handleMediaClick(mediaInfo: MediaInfo) {
     if (!isBulkEdit.value){
         return //when not bulk editing, we use an <a> for navigation
@@ -125,6 +125,7 @@ async function load(fromRefresh: boolean) {
         } else {
             folderInfos.value = [];
             mediaInfos.value = [];
+            scrollService.pathChanged(pathString);
         }
         var result = await apiAccess.getDirContents(pathString);
         if (result === null){
@@ -144,6 +145,16 @@ async function load(fromRefresh: boolean) {
         await updateFilter();
         isLoading.value = false;
         isRefreshLoading.value = false;
+        if (fromRefresh){
+            return;
+        }
+        await nextTick();
+        scrollService.tryScroll()
+    } else {
+        selectedFolderInfos.value = [];
+        selectedMediaInfos.value = [];
+        isBulkEdit.value = false;
+        await updateFilter();
     }
 }
 load(false);
@@ -229,7 +240,6 @@ function bodyKeyDownHandler(e: KeyboardEvent){
         bulkCopy(true);
         e.preventDefault();
     }
-    console.log(e.key)
     if (e.key.toLowerCase() === 'delete' && isBulkEdit.value) {
         bulkDelete();
         e.preventDefault();
@@ -393,112 +403,114 @@ function refresh(){
 </script>
 
 <template>
-    <div class="top-section-grid">
-        <div style="grid-area: breadcrumbs; min-width: 0;">
-            <BreadCrumbs></BreadCrumbs>
-        </div>
-        <div style="grid-area: filtersort;">
-            <div style="position: relative; display: flex; justify-content: end; margin-top: 2px;">
-                <button class="btn" @click="toggleIsFilter">filter</button>
-                <div @click="stopPropogate">
-                    <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
-                        sort by
-                        <div class="context-menu checkable" :class="{active: showDropdown}">
-                            <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
-                            <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
-                            <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
-                            <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
-                            <div class="menu-item" @click="changeSortBy('random')"><span v-if="sortBy=='random'">✓</span>random</div>
-                            <div class="menu-sep"></div>
-                            <div class="menu-item" @click="toggleFoldersFirst()"><span v-if="foldersFirst">✓</span>folders first</div>
-                        </div>
-                    </button>
-                </div>
-                <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
+    <div>
+        <div class="top-section-grid">
+            <div style="grid-area: breadcrumbs; min-width: 0;">
+                <BreadCrumbs></BreadCrumbs>
             </div>
-        </div>
-        <div v-if="isFilter" class="text-muted" style="grid-area: filterCount; margin-left: 8px;">
-            <span v-if="filterText">filtered to {{  filteredFolderInfos.length + filteredMediaInfos.length}} of {{ folderInfos.length + mediaInfos.length}}</span>
-        </div>
-        <div v-if="isFilter" class="text-muted" style="grid-area: advancedFilter; margin: 4px 8px; display: flex; flex-wrap: wrap; justify-content: end; gap: 12px;">
-            <template v-if="isAdvancedFilter">
-                <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
-                    <input type="checkbox" v-model="anyOrder" @change="filterChanged" :disabled="regex">
-                    match words in any order
-                </label>
-                <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
-                    <input type="checkbox" v-model="typeTolerance" @change="filterChanged" :disabled="regex">
-                    typo tolerance
-                </label>
-                <label style="white-space: nowrap;">
-                    <input type="checkbox" v-model="regex" @change="filterChanged">
-                    regex
-                </label>
-                <label style="white-space: nowrap;">
-                    <input type="checkbox" v-model="folderContents" @change="filterChanged">
-                    consider folder contents
-                </label>
-            </template>
-        </div>
-        <div v-if="isFilter" style="grid-area: filterInput; margin-bottom: 6px; margin-right: 8px;">
-            <div style="position: relative; margin-right: 4px; display: inline-block;">
-                <input id="filter-input" placeholder="enter filter text" v-model="filterText" @input="filterChanged()" autocomplete="off">
-                <div v-if="filterText" class="clear-btn" @click="clearFilter">&times;</div>
-            </div>
-            <button @click="toggleIsAdvanced">advanced</button>
-        </div>
-    </div>
-    <div style="position: relative">
-        <div class="dir-content-grid" v-if="isRefreshLoading || (!isLoading && !isFilterLoading)">
-            <template v-if="foldersFirst">
-                <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
-                    <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
-                </div>
-                <div v-for="mediaInfo of filteredMediaInfos" :class="{selected: selectedMediaInfos.includes(mediaInfo)}">
-                    <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh" :url="getMediaUrl(mediaInfo)"></Tile>
-                </div>
-            </template>
-            <template v-if="!foldersFirst">
-                <template v-for="info of computedSortCombined">
-                    <div v-if="info.folder" :class="{selected: selectedFolderInfos.includes(info.folder)}" >
-                        <Tile :folderInfo="info.folder" :allowChanges="!isBulkEdit" @click="handleFolderClick(info.folder)" @changed="refresh" :url="getFolderUrl(info.folder)"></Tile>
+            <div style="grid-area: filtersort;">
+                <div style="position: relative; display: flex; justify-content: end; margin-top: 2px;">
+                    <button class="btn" @click="toggleIsFilter">filter</button>
+                    <div @click="stopPropogate">
+                        <button class="btn" @click="showDropdown = !showDropdown" style="margin-right: -4px;">
+                            sort by
+                            <div class="context-menu checkable" :class="{active: showDropdown}">
+                                <div class="menu-item" @click="changeSortBy('name')"><span v-if="sortBy=='name'">✓</span>name</div>
+                                <div class="menu-item" @click="changeSortBy('modified')"><span v-if="sortBy=='modified'">✓</span>date modified</div>
+                                <div class="menu-item" @click="changeSortBy('duration')"><span v-if="sortBy=='duration'">✓</span>duration</div>
+                                <div class="menu-item" @click="changeSortBy('size')"><span v-if="sortBy=='size'">✓</span>size</div>
+                                <div class="menu-item" @click="changeSortBy('random')"><span v-if="sortBy=='random'">✓</span>random</div>
+                                <div class="menu-sep"></div>
+                                <div class="menu-item" @click="toggleFoldersFirst()"><span v-if="foldersFirst">✓</span>folders first</div>
+                            </div>
+                        </button>
                     </div>
-                    <div v-if="info.media" :class="{selected: selectedMediaInfos.includes(info.media)}">
-                        <Tile :mediaInfo="info.media" :allowChanges="!isBulkEdit" @click="handleMediaClick(info.media)" @changed="refresh" :url="getMediaUrl(info.media)"></Tile>
+                    <button class="btn" style="font-family: monospace" @click="toggleSortDesc">{{ sortDesc ? "↓" : "↑" }}</button>
+                </div>
+            </div>
+            <div v-if="isFilter" class="text-muted" style="grid-area: filterCount; margin-left: 8px;">
+                <span v-if="filterText">filtered to {{  filteredFolderInfos.length + filteredMediaInfos.length}} of {{ folderInfos.length + mediaInfos.length}}</span>
+            </div>
+            <div v-if="isFilter" class="text-muted" style="grid-area: advancedFilter; margin: 4px 8px; display: flex; flex-wrap: wrap; justify-content: end; gap: 12px;">
+                <template v-if="isAdvancedFilter">
+                    <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
+                        <input type="checkbox" v-model="anyOrder" @change="filterChanged" :disabled="regex">
+                        match words in any order
+                    </label>
+                    <label style="white-space: nowrap;" :class="{'text-very-muted': regex}">
+                        <input type="checkbox" v-model="typeTolerance" @change="filterChanged" :disabled="regex">
+                        typo tolerance
+                    </label>
+                    <label style="white-space: nowrap;">
+                        <input type="checkbox" v-model="regex" @change="filterChanged">
+                        regex
+                    </label>
+                    <label style="white-space: nowrap;">
+                        <input type="checkbox" v-model="folderContents" @change="filterChanged">
+                        consider folder contents
+                    </label>
+                </template>
+            </div>
+            <div v-if="isFilter" style="grid-area: filterInput; margin-bottom: 6px; margin-right: 8px;">
+                <div style="position: relative; margin-right: 4px; display: inline-block;">
+                    <input id="filter-input" placeholder="enter filter text" v-model="filterText" @input="filterChanged()" autocomplete="off">
+                    <div v-if="filterText" class="clear-btn" @click="clearFilter">&times;</div>
+                </div>
+                <button @click="toggleIsAdvanced">advanced</button>
+            </div>
+        </div>
+        <div style="position: relative">
+            <div class="dir-content-grid" v-if="isRefreshLoading || (!isLoading && !isFilterLoading)">
+                <template v-if="foldersFirst">
+                    <div v-for="folderInfo of filteredFolderInfos" :class="{selected: selectedFolderInfos.includes(folderInfo)}">
+                        <Tile :folderInfo="folderInfo" :allowChanges="!isBulkEdit" @click="handleFolderClick(folderInfo)" @changed="refresh" :url="getFolderUrl(folderInfo)"></Tile>
+                    </div>
+                    <div v-for="mediaInfo of filteredMediaInfos" :class="{selected: selectedMediaInfos.includes(mediaInfo)}">
+                        <Tile :mediaInfo="mediaInfo" :allowChanges="!isBulkEdit" @click="handleMediaClick(mediaInfo)" @changed="refresh" :url="getMediaUrl(mediaInfo)"></Tile>
                     </div>
                 </template>
-            </template>
-        </div>
-        <div class="center-message fade-in" v-if="!isRefreshLoading && (isLoading || isFilterLoading)">
-            <h2>loading</h2>
-        </div>
-        <div v-if="isRefreshLoading" class="loading-overlay fast-fade-in">
-            <h1 style="position: fixed; top: 40vh; text-align: center; left: 0; right: 0; text-shadow: 2px 2px 2px #000000;">loading</h1>
-        </div>
-        <div class="center-message" v-if="!isLoading && !isFilterLoading && !filteredFolderInfos.length && !filteredMediaInfos.length">
-            <h2 v-if="filterText && (mediaInfos.length || folderInfos.length)">No Items Match Filter</h2>
-            <h2 v-else>Folder is Empty</h2>
-        </div>
-        <div v-if="!isBulkEdit" style="height: 32px;"></div>
-        <div v-if="!isBulkEdit" class="footer-buttons">
-            <button @click="newFolder">New Folder</button>
-                <button @click="startBulkEdit">Bulk Edit</button>
-                <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
-                <UploadFileModal @uploaded="refresh"></UploadFileModal>
-        </div>
-        <div v-if="isBulkEdit" style="height: 64px;"></div>
-        <div v-if="isBulkEdit" class="bulk-edit-footer">
-            <div style="display: flex; justify-content: space-between;">
-                <h3 style="margin: 8px 0 4px 8px;">Bulk Edit Mode ({{ (selectedFolderInfos.length + selectedMediaInfos.length) + '/' + (filteredFolderInfos.length + filteredMediaInfos.length) }})</h3>
-                <div style="padding: 8px 8px 0 0;"><button @click="stopBulkEdit">Cancel</button></div>
+                <template v-if="!foldersFirst">
+                    <template v-for="info of computedSortCombined">
+                        <div v-if="info.folder" :class="{selected: selectedFolderInfos.includes(info.folder)}" >
+                            <Tile :folderInfo="info.folder" :allowChanges="!isBulkEdit" @click="handleFolderClick(info.folder)" @changed="refresh" :url="getFolderUrl(info.folder)"></Tile>
+                        </div>
+                        <div v-if="info.media" :class="{selected: selectedMediaInfos.includes(info.media)}">
+                            <Tile :mediaInfo="info.media" :allowChanges="!isBulkEdit" @click="handleMediaClick(info.media)" @changed="refresh" :url="getMediaUrl(info.media)"></Tile>
+                        </div>
+                    </template>
+                </template>
             </div>
-            <div style="margin-left: 8px;">
-                <button @click="toggleSelectAll">Toggle Select All</button>
-                <button @click="bulkCopy(true)" style="margin-left: 40px;">Move</button>
-                <button @click="bulkCopy(false)" style="margin-left: 8px;">Copy</button>
-                <button @click="bulkDelete" style="margin-left: 8px;">delete</button>
+            <div class="center-message fade-in" v-if="!isRefreshLoading && (isLoading || isFilterLoading)">
+                <h2>loading</h2>
             </div>
-        </div>
+            <div v-if="isRefreshLoading" class="loading-overlay fast-fade-in">
+                <h1 style="position: fixed; top: 40vh; text-align: center; left: 0; right: 0; text-shadow: 2px 2px 2px #000000;">loading</h1>
+            </div>
+            <div class="center-message" v-if="!isLoading && !isFilterLoading && !filteredFolderInfos.length && !filteredMediaInfos.length">
+                <h2 v-if="filterText && (mediaInfos.length || folderInfos.length)">No Items Match Filter</h2>
+                <h2 v-else>Folder is Empty</h2>
+            </div>
+            <div v-if="!isBulkEdit" style="height: 32px;"></div>
+            <div v-if="!isBulkEdit" class="footer-buttons">
+                <button @click="newFolder">New Folder</button>
+                    <button @click="startBulkEdit">Bulk Edit</button>
+                    <UploadFromUrl @uploaded="refresh"></UploadFromUrl>
+                    <UploadFileModal @uploaded="refresh"></UploadFileModal>
+            </div>
+            <div v-if="isBulkEdit" style="height: 64px;"></div>
+            <div v-if="isBulkEdit" class="bulk-edit-footer">
+                <div style="display: flex; justify-content: space-between;">
+                    <h3 style="margin: 8px 0 4px 8px;">Bulk Edit Mode ({{ (selectedFolderInfos.length + selectedMediaInfos.length) + '/' + (filteredFolderInfos.length + filteredMediaInfos.length) }})</h3>
+                    <div style="padding: 8px 8px 0 0;"><button @click="stopBulkEdit">Cancel</button></div>
+                </div>
+                <div style="margin-left: 8px;">
+                    <button @click="toggleSelectAll">Toggle Select All</button>
+                    <button @click="bulkCopy(true)" style="margin-left: 40px;">Move</button>
+                    <button @click="bulkCopy(false)" style="margin-left: 8px;">Copy</button>
+                    <button @click="bulkDelete" style="margin-left: 8px;">delete</button>
+                </div>
+            </div>
+        </div>  
     </div>
 </template>
 

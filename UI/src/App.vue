@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import FolderList from './components/FolderList.vue';
 import { pathService } from '@/services/PathService';
 import MediaPlayer from './components/MediaPlayer.vue';
 import FolderSelectModal from './components/FolderSelectModal.vue'
-import { fileDropService } from './services/FileDropService';
 import { dragService } from './services/DragService';
-import { fileTypeHelper } from './services/FileTypeHelper';
-import { apiAccess } from '@/services/ApiAccess';
 console.log("Made by Josh-TX")
 console.log("https://github.com/Josh-TX/fileplayer")
 
@@ -16,7 +12,7 @@ console.log("https://github.com/Josh-TX/fileplayer")
 <template>
     <FolderSelectModal></FolderSelectModal>
     <div id="app-main" style="display: flex; flex-direction: column; height: 100%;" @dragover.prevent @dragenter.prevent="dragService.dragEnter" @dragleave="dragService.dragLeave" @drop.prevent="dragService.handleDrop">
-        <FolderList v-if="!pathService.isFile().value"></FolderList>
+        <FolderList v-show="!pathService.isFile().value"></FolderList>
         <MediaPlayer v-if="pathService.isFile().value"></MediaPlayer>
         <div :class="['file-drop-overlay', { 'drag-over': dragService.isDragging.value && !pathService.isFile().value }]">
             <div class="inner-overlay">
