@@ -43,7 +43,7 @@ export type Event = {
     type: EventType
 }
 
-export type EventType = "playing" | "error" | "seekforwards" | "seekbackwards" | "restarted" | "firstupdate" | "firstever"
+export type EventType = "init" | "playing" | "error" | "seekforwards" | "seekbackwards" | "restarted" | "firstupdate" | "firstever"
 
 type StoredEvent = Event & {
     insertMs: number,

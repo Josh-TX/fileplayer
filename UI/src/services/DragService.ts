@@ -29,7 +29,7 @@ class DragService{
     isDragging = ref(false);
     dragEnter(event: DragEvent) {
         event.preventDefault();
-        if (!event.dataTransfer || !event.dataTransfer.files || !event.dataTransfer.files.length){
+        if (!event.dataTransfer || !event.dataTransfer.types || !event.dataTransfer.types.length || event.dataTransfer.types[0].toLowerCase() != "files"){
             return;
         }
         this.isDragging.value = true;

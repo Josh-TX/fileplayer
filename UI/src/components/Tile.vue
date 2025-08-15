@@ -230,11 +230,24 @@ async function del(){
 .primary-name {
     overflow: hidden;
     font-weight: 400;
+    font-size: 1em;
     width: 100%;
     min-width: 100%;
-    margin: 1px 0 0 0;
-    text-overflow: ellipsis;
+    margin: 5px 0 6px 0;
     white-space: nowrap;
+}
+@media (min-width: 600px) {
+    .primary-name {
+        font-size: 1.25em;
+        text-overflow: ellipsis;
+        margin: 3px 0 3px 0;
+    }
+}
+@media (min-width: 820px) {
+    .primary-name {
+        font-size: 1.5em;
+        margin: 1px 0 0 0;
+    }
 }
 
 .ext {

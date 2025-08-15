@@ -34,6 +34,7 @@ settingsService.getSettingsAsync().then(z => {
 watch(pathService.getPath(),(newVal, oldVal) => {
     setupRan = false;
     text.value = null;
+    mediaInfo.value = null;
     isImage.value = false;
     updateSrc();
     updateMediaInfo();
@@ -107,7 +108,7 @@ async function setup(){
         id = "native-video"
     }
     nextTick(() => {
-        progressManager = new ProgressManager(pathStr, mediaInfo.value!.progress, id)
+        progressManager = new ProgressManager(pathStr, mediaInfo.value!.progress, id, onProgressChange)
     });
 }
 
@@ -133,6 +134,14 @@ function stopPropogate(e: Event){
 function bodyClickHandler(){
     showDropdown.value = false;
 }
+function onProgressChange(progress: number){
+    //There's a very elusive bug on mobile devices that might be related to low-powered mode or some sorta half-refresh
+    //I suspect the issue is related to a stale mediaInfo progress being provided to the ProgressManager
+    //so, my plan is to just continuously update the mediaInfo progress, so that it's never stale
+    if (mediaInfo.value){
+        mediaInfo.value.progress = progress;
+    }
+}
 function changePlayer(newIsNative: boolean){
     if (newIsNative != isNative.value){
         var progress: number | null = null;
@@ -147,13 +156,13 @@ function changePlayer(newIsNative: boolean){
             }
             nextTick(() => {
                 isNative.value = newIsNative;
-                progressManager = new ProgressManager(pathService.getPathString(), progress, "native-video");
+                progressManager = new ProgressManager(pathService.getPathString(), progress, "native-video", onProgressChange);
             });
         } else {
             isNative.value = newIsNative;
             nextTick(() => {
                 videoJsManager = new VideoJsManager("default-video");
-                progressManager = new ProgressManager(pathService.getPathString(), progress, "default-video");
+                progressManager = new ProgressManager(pathService.getPathString(), progress, "default-video", onProgressChange);
             })
         }
     }

@@ -13,10 +13,13 @@ export class ProgressManager {
     private _lastUpdateTime: number | null = null;
     private _lastPlaybackRate: number = 1;
     private _staticPlaybackRate: number | null = null;
-    constructor(path: string, progress: number | null, id: string){
+    private _progressChangeCallback: (n: number) => void;
+    
+    constructor(path: string, progress: number | null, id: string, progressChangeCallback: (n: number) => void){
         this.intervalCallback = this.intervalCallback.bind(this);
         this._id = id;
         this._path = path;
+        this._progressChangeCallback = progressChangeCallback;
         this._intervalId = setInterval(this.intervalCallback, 200);
         this._initTime = new Date().getTime();
         this.tryInit(progress);
@@ -34,6 +37,11 @@ export class ProgressManager {
             }, 10);
             return;
         }
+        historyService.RecordEvent({
+            path: this._path,
+            currentTime: el.duration * (progress || 0),
+            type: "init"
+        });
         this._staticPlaybackRate = this.extractStaticSpeed(this._path);
         if (this._staticPlaybackRate != null){
             this.runManyTimes(10, () => el!.playbackRate = this._staticPlaybackRate!); //default play
@@ -182,6 +190,7 @@ export class ProgressManager {
             this._lastUpdateTime = new Date().getTime();
             if (!isNaN(this._lastProgress)){
                 apiAccess.updateProgress(this._lastProgress , this._path!);
+                this._progressChangeCallback(this._lastProgress);
             }
         } catch {
             historyService.RecordEvent({
