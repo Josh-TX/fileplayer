@@ -25,6 +25,9 @@ class PathService{
             var hash = decodeURIComponent(window.location.hash.slice(1));
             this._path.value = hash ? hash.split("/") : [];
             this._isFile.value = this._path.value.length ? this._path.value[this._path.value.length-1].includes(".") : false;
+            if (!this._isFile.value){
+                document.title = "Fileplayer";
+            }
         });
     }
 

@@ -250,7 +250,6 @@ function bodyKeyDownHandler(e: KeyboardEvent){
 onMounted(() => {
     document.body.addEventListener("click", bodyClickHandler);
     document.body.addEventListener("keydown", bodyKeyDownHandler);
-    document.title = "Fileplayer";
     dragService.subscribeMove(refresh);
 })
 onUnmounted(() => {
